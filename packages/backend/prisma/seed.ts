@@ -1,4 +1,4 @@
-import { PrismaClient, TenantType, UserRole } from '@prisma/client';
+import { PrismaClient, TenantType, UserRole, TenantStatus, UserStatus } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
@@ -6,7 +6,26 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('🌱 Starting seed...');
 
-  // Create a sample supplier
+  // Create super admin first
+  const superAdminPasswordHash = await bcrypt.hash('admin123', 12);
+  const superAdmin = await prisma.user.upsert({
+    where: { email: 'admin@system.com' },
+    update: {},
+    create: {
+      email: 'admin@system.com',
+      passwordHash: superAdminPasswordHash,
+      firstName: 'Super',
+      lastName: 'Admin',
+      role: UserRole.super_admin,
+      status: UserStatus.active,
+      isActive: true,
+      tenantId: null, // Super admin has no tenant
+    },
+  });
+
+  console.log('✅ Created super admin user');
+
+  // Create a sample supplier (active, pre-approved for seed)
   const supplier = await prisma.tenant.upsert({
     where: { email: 'supplier@example.com' },
     update: {},
@@ -16,13 +35,14 @@ async function main() {
       email: 'supplier@example.com',
       phone: '+1234567890',
       address: '123 Supplier St, City, State',
+      status: TenantStatus.active,
       isActive: true,
     },
   });
 
   console.log('✅ Created supplier tenant:', supplier.name);
 
-  // Create supplier admin user
+  // Create supplier admin user (active, pre-approved for seed)
   const supplierPasswordHash = await bcrypt.hash('password123', 12);
   const supplierAdmin = await prisma.user.upsert({
     where: { email: 'supplier@example.com' },
@@ -34,13 +54,14 @@ async function main() {
       firstName: 'Supplier',
       lastName: 'Admin',
       role: UserRole.supplier_admin,
+      status: UserStatus.active,
       isActive: true,
     },
   });
 
   console.log('✅ Created supplier admin user');
 
-  // Create a sample company
+  // Create a sample company (active, pre-approved for seed)
   const company = await prisma.tenant.upsert({
     where: { email: 'company@example.com' },
     update: {},
@@ -50,13 +71,14 @@ async function main() {
       email: 'company@example.com',
       phone: '+1234567891',
       address: '456 Company Ave, City, State',
+      status: TenantStatus.active,
       isActive: true,
     },
   });
 
   console.log('✅ Created company tenant:', company.name);
 
-  // Create company admin user
+  // Create company admin user (active, pre-approved for seed)
   const companyPasswordHash = await bcrypt.hash('password123', 12);
   const companyAdmin = await prisma.user.upsert({
     where: { email: 'company@example.com' },
@@ -68,6 +90,7 @@ async function main() {
       firstName: 'Company',
       lastName: 'Admin',
       role: UserRole.company_admin,
+      status: UserStatus.active,
       isActive: true,
     },
   });
@@ -138,6 +161,7 @@ async function main() {
 
   console.log('🎉 Seed completed successfully!');
   console.log('\n📝 Test Credentials:');
+  console.log('Super Admin: admin@system.com / admin123');
   console.log('Supplier: supplier@example.com / password123');
   console.log('Company: company@example.com / password123');
 }
@@ -150,6 +174,7 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
+
 
 
 

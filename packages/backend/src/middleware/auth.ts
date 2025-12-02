@@ -5,9 +5,10 @@ import { prisma } from '../utils/prisma';
 
 export interface AuthRequest extends Request {
   userId?: string;
-  tenantId?: string;
+  tenantId?: string | null;
   userRole?: string;
   tenantType?: string;
+  userPermissions?: Record<string, any>;
 }
 
 export async function authenticate(
@@ -42,16 +43,36 @@ export async function authenticate(
       include: { tenant: true },
     });
 
-    if (!user || !user.isActive || !user.tenant.isActive) {
-      throw createError(401, 'User or tenant is inactive');
+    if (!user || !user.isActive || user.status !== 'active') {
+      throw createError(401, 'User is inactive or pending approval');
+    }
+
+    // Handle super admin (no tenant)
+    if (user.role === 'super_admin') {
+      req.userId = decoded.userId;
+      req.tenantId = null;
+      req.userRole = decoded.role;
+      req.tenantType = 'system';
+      req.userPermissions = {};
+      next();
+      return;
+    }
+
+    // Regular users must have active tenant
+    if (!user.tenant) {
+      throw createError(403, 'User account is invalid');
+    }
+
+    if (!user.tenant.isActive || user.tenant.status !== 'active') {
+      throw createError(403, 'Tenant is inactive or pending approval');
     }
 
     // Attach user info to request
     req.userId = decoded.userId;
-    req.tenantId = decoded.tenantId;
+    req.tenantId = user.tenantId;
     req.userRole = decoded.role;
-    // Use tenant type from database to ensure it's current
     req.tenantType = user.tenant.type;
+    req.userPermissions = (user.permissions as Record<string, any>) || {};
 
     // Debug logging (remove in production)
     if (process.env.NODE_ENV !== 'production') {
@@ -96,6 +117,66 @@ export function requireTenantType(...allowedTypes: string[]) {
 
     if (!allowedTypes.includes(req.tenantType)) {
       return next(createError(403, `Invalid tenant type. Expected one of: ${allowedTypes.join(', ')}, but got: ${req.tenantType}`));
+    }
+
+    next();
+  };
+}
+
+export function requireSuperAdmin() {
+  return (req: AuthRequest, res: Response, next: NextFunction) => {
+    if (!req.userRole) {
+      return next(createError(401, 'Authentication required'));
+    }
+
+    if (req.userRole !== 'super_admin') {
+      return next(createError(403, 'Super admin access required'));
+    }
+
+    next();
+  };
+}
+
+export function requireTenantAdmin() {
+  return (req: AuthRequest, res: Response, next: NextFunction) => {
+    if (!req.userRole) {
+      return next(createError(401, 'Authentication required'));
+    }
+
+    const adminRoles = ['supplier_admin', 'company_admin', 'super_admin'];
+    if (!adminRoles.includes(req.userRole)) {
+      return next(createError(403, 'Tenant admin access required'));
+    }
+
+    next();
+  };
+}
+
+/**
+ * Check if user has permission for a specific resource and action
+ * Example: requirePermission('products', 'update')
+ */
+export function requirePermission(resource: string, action: string) {
+  return (req: AuthRequest, res: Response, next: NextFunction) => {
+    if (!req.userRole) {
+      return next(createError(401, 'Authentication required'));
+    }
+
+    // Super admins and tenant admins have all permissions
+    const adminRoles = ['super_admin', 'supplier_admin', 'company_admin'];
+    if (adminRoles.includes(req.userRole)) {
+      next();
+      return;
+    }
+
+    // Check granular permissions for staff users
+    const permissions = req.userPermissions || {};
+    const resourcePermissions = permissions[resource];
+
+    if (!resourcePermissions || !resourcePermissions[action]) {
+      return next(
+        createError(403, `Permission denied: ${resource}.${action} is required`)
+      );
     }
 
     next();

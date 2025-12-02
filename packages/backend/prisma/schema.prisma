@@ -12,16 +12,22 @@ datasource db {
 
 // Multi-tenant companies (suppliers and companies)
 model Tenant {
-  id        String   @id @default(uuid())
-  name      String   @db.VarChar(255)
-  type      TenantType
-  email     String   @unique @db.VarChar(255)
-  phone     String?  @db.VarChar(50)
-  address   String?  @db.Text
-  isActive  Boolean  @default(true) @map("is_active")
-  metadata  Json?    @default("{}")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id            String      @id @default(uuid())
+  name          String      @db.VarChar(255)
+  type          TenantType
+  email         String      @unique @db.VarChar(255)
+  phone         String?     @db.VarChar(50)
+  address       String?     @db.Text
+  status        TenantStatus @default(pending)
+  isActive      Boolean     @default(false) @map("is_active")
+  approvedBy    String?     @map("approved_by")
+  approvedAt    DateTime?   @map("approved_at")
+  rejectedBy    String?     @map("rejected_by")
+  rejectedAt    DateTime?   @map("rejected_at")
+  rejectionReason String?   @map("rejection_reason") @db.Text
+  metadata      Json?       @default("{}")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
 
   // Relations
   users         User[]
@@ -31,7 +37,9 @@ model Tenant {
 
   @@map("tenants")
   @@index([type])
+  @@index([status])
   @@index([isActive])
+  @@index([status, type])
 }
 
 enum TenantType {
@@ -39,36 +47,58 @@ enum TenantType {
   company
 }
 
-// All users across tenants
+enum TenantStatus {
+  pending
+  active
+  rejected
+}
+
+// All users across tenants (or super admins without tenant)
 model User {
-  id         String   @id @default(uuid())
-  tenantId   String   @map("tenant_id")
-  email      String   @unique @db.VarChar(255)
-  passwordHash String @map("password_hash") @db.VarChar(255)
-  firstName  String?  @map("first_name") @db.VarChar(100)
-  lastName   String?  @map("last_name") @db.VarChar(100)
-  role       UserRole
-  isActive   Boolean  @default(true) @map("is_active")
-  lastLoginAt DateTime? @map("last_login_at")
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @updatedAt @map("updated_at")
+  id            String      @id @default(uuid())
+  tenantId      String?     @map("tenant_id") // Nullable for super admins
+  email         String      @unique @db.VarChar(255)
+  passwordHash  String      @map("password_hash") @db.VarChar(255)
+  firstName     String?     @map("first_name") @db.VarChar(100)
+  lastName      String?     @map("last_name") @db.VarChar(100)
+  role          UserRole
+  status        UserStatus  @default(pending)
+  isActive      Boolean     @default(false) @map("is_active")
+  approvedBy    String?     @map("approved_by")
+  approvedAt    DateTime?   @map("approved_at")
+  rejectedBy    String?     @map("rejected_by")
+  rejectedAt    DateTime?   @map("rejected_at")
+  rejectionReason String?   @map("rejection_reason") @db.Text
+  permissions   Json?       @default("{}") // Granular permissions: { products: { view: true, update: true, delete: false }, prices: {...} }
+  lastLoginAt   DateTime?   @map("last_login_at")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
 
   // Relations
-  tenant        Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  priceAudits   PriceAuditLog[]  @relation("ChangedByUser")
+  tenant        Tenant?           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  priceAudits   PriceAuditLog[]   @relation("ChangedByUser")
   priceViews    PriceView[]
 
   @@map("users")
   @@index([tenantId])
   @@index([email])
   @@index([role])
+  @@index([status])
+  @@index([tenantId, status])
 }
 
 enum UserRole {
+  super_admin
   supplier_admin
   supplier_staff
   company_admin
   company_staff
+}
+
+enum UserStatus {
+  pending
+  active
+  rejected
 }
 
 // Supplier product catalog
@@ -197,6 +227,7 @@ model PriceView {
   @@index([companyId])
   @@index([viewedAt])
 }
+
 
 
 

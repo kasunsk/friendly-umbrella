@@ -29,28 +29,38 @@ export class AuthService {
       throw createError(409, 'Email already registered');
     }
 
+    // Check if tenant email already exists
+    const existingTenant = await prisma.tenant.findUnique({
+      where: { email: input.email },
+    });
+
+    if (existingTenant) {
+      throw createError(409, 'Email already registered');
+    }
+
     // Determine role based on tenant type if not provided
     let role = input.role;
     if (!role) {
       role = input.tenantType === 'supplier' ? 'supplier_admin' : 'company_admin';
     }
 
-    // Create tenant and user in transaction
+    // Create tenant and user in transaction - both start as pending
     const result = await prisma.$transaction(async (tx) => {
-      // Create tenant
+      // Create tenant with pending status
       const tenant = await tx.tenant.create({
         data: {
           name: input.tenantName,
           type: input.tenantType,
           email: input.email,
-          isActive: true,
+          status: 'pending',
+          isActive: false,
         },
       });
 
       // Hash password
       const passwordHash = await hashPassword(input.password);
 
-      // Create user
+      // Create user with pending status
       const user = await tx.user.create({
         data: {
           tenantId: tenant.id,
@@ -59,7 +69,8 @@ export class AuthService {
           firstName: input.firstName,
           lastName: input.lastName,
           role: role as any,
-          isActive: true,
+          status: 'pending',
+          isActive: false,
         },
         include: {
           tenant: true,
@@ -69,40 +80,26 @@ export class AuthService {
       return { user, tenant };
     });
 
-    // Generate tokens
-    const accessToken = generateAccessToken({
-      userId: result.user.id,
-      tenantId: result.user.tenantId,
-      role: result.user.role,
-      tenantType: result.tenant.type,
-    });
-
-    const refreshToken = generateRefreshToken({
-      userId: result.user.id,
-      tenantId: result.user.tenantId,
-      role: result.user.role,
-      tenantType: result.tenant.type,
-    });
-
+    // Don't generate tokens - user must wait for approval
+    // Return a message indicating pending approval
     return {
+      message: 'Registration successful. Your account is pending approval by a super administrator.',
       user: {
         id: result.user.id,
         email: result.user.email,
         firstName: result.user.firstName,
         lastName: result.user.lastName,
         role: result.user.role,
+        status: result.user.status,
         tenantId: result.user.tenantId,
         tenantType: result.tenant.type,
-      },
-      tokens: {
-        accessToken,
-        refreshToken,
+        tenantStatus: result.tenant.status,
       },
     };
   }
 
   async login(input: LoginInput) {
-    // Find user with tenant
+    // Find user (with optional tenant for super admins)
     const user = await prisma.user.findUnique({
       where: { email: input.email },
       include: { tenant: true },
@@ -112,15 +109,69 @@ export class AuthService {
       throw createError(401, 'Invalid email or password');
     }
 
-    if (!user.isActive || !user.tenant.isActive) {
-      throw createError(403, 'Account is inactive');
-    }
-
-    // Verify password
+    // Verify password first before checking status
     const isValid = await comparePassword(input.password, user.passwordHash);
 
     if (!isValid) {
       throw createError(401, 'Invalid email or password');
+    }
+
+    // Check if user is a super admin (no tenant)
+    if (user.role === 'super_admin') {
+      if (user.status !== 'active' || !user.isActive) {
+        throw createError(403, 'Account is pending approval or inactive');
+      }
+
+      // Update last login
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { lastLoginAt: new Date() },
+      });
+
+      // Generate tokens for super admin (tenantId is null)
+      const accessToken = generateAccessToken({
+        userId: user.id,
+        tenantId: user.tenantId || '',
+        role: user.role,
+        tenantType: 'system', // Special type for super admins
+      });
+
+      const refreshToken = generateRefreshToken({
+        userId: user.id,
+        tenantId: user.tenantId || '',
+        role: user.role,
+        tenantType: 'system',
+      });
+
+      return {
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role,
+          tenantId: user.tenantId,
+          tenantType: 'system',
+        },
+        tokens: {
+          accessToken,
+          refreshToken,
+        },
+      };
+    }
+
+    // Regular user - must have tenant
+    if (!user.tenant) {
+      throw createError(403, 'User account is invalid');
+    }
+
+    // Check tenant and user status
+    if (user.tenant.status !== 'active' || !user.tenant.isActive) {
+      throw createError(403, 'Your company/supplier account is pending approval by a super administrator');
+    }
+
+    if (user.status !== 'active' || !user.isActive) {
+      throw createError(403, 'Your user account is pending approval by your organization administrator');
     }
 
     // Update last login
@@ -132,14 +183,14 @@ export class AuthService {
     // Generate tokens
     const accessToken = generateAccessToken({
       userId: user.id,
-      tenantId: user.tenantId,
+      tenantId: user.tenantId!,
       role: user.role,
       tenantType: user.tenant.type,
     });
 
     const refreshToken = generateRefreshToken({
       userId: user.id,
-      tenantId: user.tenantId,
+      tenantId: user.tenantId!,
       role: user.role,
       tenantType: user.tenant.type,
     });
@@ -175,14 +226,30 @@ export class AuthService {
         include: { tenant: true },
       });
 
-      if (!user || !user.isActive || !user.tenant.isActive) {
-        throw createError(401, 'User or tenant is inactive');
+      if (!user || !user.isActive || user.status !== 'active') {
+        throw createError(401, 'User is inactive or pending approval');
+      }
+
+      // Handle super admin refresh
+      if (user.role === 'super_admin') {
+        const accessToken = generateToken({
+          userId: user.id,
+          tenantId: user.tenantId || '',
+          role: user.role,
+          tenantType: 'system',
+        });
+        return { accessToken };
+      }
+
+      // Regular user - must have active tenant
+      if (!user.tenant || !user.tenant.isActive || user.tenant.status !== 'active') {
+        throw createError(401, 'Tenant is inactive or pending approval');
       }
 
       // Generate new access token
       const accessToken = generateToken({
         userId: user.id,
-        tenantId: user.tenantId,
+        tenantId: user.tenantId!,
         role: user.role,
         tenantType: user.tenant.type,
       });
@@ -226,6 +293,7 @@ export class AuthService {
 }
 
 export const authService = new AuthService();
+
 
 
 
