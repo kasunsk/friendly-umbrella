@@ -72,6 +72,31 @@ The product table shows:
 - **Unit**: Measurement unit
 - **Price**: Current default price (if set)
 - **Status**: Active or Inactive
+- **Actions**: Edit, Inactive/Activate, and Delete buttons
+
+### Managing Products in the Table
+
+Each product row includes action buttons:
+
+#### Edit Product
+1. Click the **"Edit"** button on any product row
+2. A modal opens with the product's current information pre-filled
+3. Modify any field (SKU, name, description, category, unit, price, currency)
+4. Click **"Update Product"** to save changes
+5. Changes are reflected immediately in the table
+
+#### Activate/Deactivate Product
+1. Click the **"Inactive"** button to deactivate an active product
+2. Click the **"Activate"** button to reactivate an inactive product
+3. A confirmation dialog will appear before changing the status
+4. Inactive products won't appear in company searches
+
+#### Delete Product
+1. Click the **"Delete"** button on any product row
+2. A confirmation modal appears asking to confirm deletion
+3. Click **"Delete"** in the modal to permanently remove the product
+4. **Warning**: This action cannot be undone
+5. Product and all associated prices will be deleted
 
 ## Setting Prices
 

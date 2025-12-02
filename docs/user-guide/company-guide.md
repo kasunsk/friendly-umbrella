@@ -98,6 +98,34 @@ When viewing products, you'll see:
 - **Currency**: Price currency
 - **Price Type**: Indicates if it's a private or default price
 
+## Viewing Supplier Details
+
+### Product Details View
+
+When viewing products in the table, you can see detailed supplier contact information:
+
+#### Step 1: Click "View Details"
+1. Find the product you're interested in
+2. Click the **"View Details"** button in the Actions column
+3. The product row expands inline to show supplier information
+
+#### Step 2: View Supplier Contact Information
+
+The expanded details show:
+- **Phone Number**: Supplier's contact phone number (if available)
+- **Location**: Supplier's business address (if available)
+
+#### Step 3: Collapse Details
+1. Click the **"Hide Details"** button to collapse the expanded row
+2. The details section closes, returning to the normal table view
+
+### Benefits
+
+- Quick access to supplier contact information
+- No need to navigate away from the product list
+- Easy comparison between different suppliers
+- Inline expansion keeps context of your current view
+
 ### Getting Product Price
 
 **Using API:**
