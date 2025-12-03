@@ -212,11 +212,14 @@ router.get(
         let calculatedPrice: number | null = null;
 
         if (privatePrice) {
-          if (privatePrice.discountPercentage !== null && defaultPrice) {
+          if (privatePrice.discountPercentage !== null && privatePrice.discountPercentage !== undefined && defaultPrice) {
             // Discount percentage is set, calculate price from default price
             discountPercentage = Number(privatePrice.discountPercentage);
             const defaultPriceValue = Number(defaultPrice.price);
+            // Ensure discount percentage is treated as percentage (3 means 3%, not 0.03)
             calculatedPrice = defaultPriceValue * (1 - discountPercentage / 100);
+            // Round to 2 decimal places for currency
+            calculatedPrice = Math.round(calculatedPrice * 100) / 100;
             finalPrice = calculatedPrice;
             finalCurrency = privatePrice.currency || defaultPrice.currency;
           } else if (privatePrice.price !== null) {
@@ -420,9 +423,11 @@ router.get(
           } : null,
           privatePrice: privatePrice ? {
             price: privatePrice.price ? Number(privatePrice.price) : null,
-            discountPercentage: privatePrice.discountPercentage ? Number(privatePrice.discountPercentage) : null,
-            calculatedPrice: privatePrice.discountPercentage && defaultPrice 
-              ? Number(defaultPrice.price) * (1 - Number(privatePrice.discountPercentage) / 100)
+            discountPercentage: privatePrice.discountPercentage !== null && privatePrice.discountPercentage !== undefined 
+              ? Number(privatePrice.discountPercentage) 
+              : null,
+            calculatedPrice: privatePrice.discountPercentage !== null && privatePrice.discountPercentage !== undefined && defaultPrice 
+              ? Math.round(Number(defaultPrice.price) * (1 - Number(privatePrice.discountPercentage) / 100) * 100) / 100
               : null,
             currency: privatePrice.currency,
           } : null,

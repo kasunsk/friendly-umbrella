@@ -5,6 +5,7 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { apiGet } from '@/lib/api';
+import { getTenantStatistics } from '@/lib/tenantAdminApi';
 import Link from 'next/link';
 
 interface SearchProduct {
@@ -72,6 +73,9 @@ function DashboardContent() {
   const [supplierSearchQuery, setSupplierSearchQuery] = useState('');
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
   const [categorySearchQuery, setCategorySearchQuery] = useState('');
+  
+  // Pending user count for admin notification
+  const [pendingUserCount, setPendingUserCount] = useState<number>(0);
 
   // Load products with filters
   const loadProducts = useCallback(async (page = 1) => {
@@ -144,6 +148,26 @@ function DashboardContent() {
 
     loadInitialData();
   }, []);
+
+  // Fetch pending user count for admin users
+  useEffect(() => {
+    const fetchPendingUserCount = async () => {
+      if (user?.role !== 'company_admin') {
+        return;
+      }
+      
+      try {
+        const stats = await getTenantStatistics();
+        setPendingUserCount(stats.users.pending || 0);
+      } catch (err) {
+        console.error('Failed to fetch pending user count:', err);
+        setPendingUserCount(0);
+      }
+    };
+
+    fetchPendingUserCount();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.role]);
 
   // Load products when filters change or on initial mount
   useEffect(() => {
@@ -246,7 +270,14 @@ function DashboardContent() {
             <div className="flex items-center gap-2">
               {user?.role === 'company_admin' && (
                 <Link href="/company/users">
-                  <Button variant="outline">User Management</Button>
+                  <Button variant="outline" className="relative">
+                    User Management
+                    {pendingUserCount > 0 && (
+                      <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center min-w-[20px]">
+                        {pendingUserCount > 99 ? '99+' : pendingUserCount}
+                      </span>
+                    )}
+                  </Button>
                 </Link>
               )}
               <Button onClick={logout} variant="outline">

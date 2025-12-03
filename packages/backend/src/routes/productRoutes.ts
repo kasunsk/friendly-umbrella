@@ -1,6 +1,6 @@
 import { Router, Response, NextFunction } from 'express';
 import { productService } from '../services/productService';
-import { authenticate, AuthRequest, requireRole, requireTenantType } from '../middleware/auth';
+import { authenticate, AuthRequest, requireRole, requireTenantType, requireTenantAdmin } from '../middleware/auth';
 import { body, param, query, validationResult } from 'express-validator';
 import { z } from 'zod';
 
@@ -175,9 +175,10 @@ router.put(
   }
 );
 
-// DELETE /api/v1/products/:id - Delete product (soft delete)
+// DELETE /api/v1/products/:id - Delete product (soft delete) - Admin only
 router.delete(
   '/products/:id',
+  requireTenantAdmin(), // Only supplier admin can delete products
   [param('id').isUUID().withMessage('Invalid product ID')],
   async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {

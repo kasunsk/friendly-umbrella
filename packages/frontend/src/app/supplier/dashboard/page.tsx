@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { apiPost, apiGet, apiPut, apiDelete } from '@/lib/api';
+import { getTenantStatistics } from '@/lib/tenantAdminApi';
 import Link from 'next/link';
 
 export default function SupplierDashboardPage() {
@@ -74,6 +75,7 @@ function DashboardContent() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [pendingUserCount, setPendingUserCount] = useState<number>(0);
   
   // Special prices for new product
   interface SpecialPriceEntry {
@@ -110,9 +112,34 @@ function DashboardContent() {
     }
   };
 
+  // Fetch pending user count for admin users
+  const fetchPendingUserCount = async () => {
+    if (user?.role !== 'supplier_admin') {
+      return;
+    }
+    
+    try {
+      const stats = await getTenantStatistics();
+      setPendingUserCount(stats.users.pending || 0);
+    } catch (err) {
+      console.error('Failed to fetch pending user count:', err);
+      setPendingUserCount(0);
+    }
+  };
+
   useEffect(() => {
     fetchStats();
+    fetchPendingUserCount();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Refresh pending user count when user changes or when returning to dashboard
+  useEffect(() => {
+    if (user?.role === 'supplier_admin') {
+      fetchPendingUserCount();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.role]);
 
   const fetchProducts = async (filter: FilterType) => {
     if (!filter) {
@@ -290,20 +317,27 @@ function DashboardContent() {
     try {
       // Validate and prepare special prices (only included ones)
       const validSpecialPrices = includedSpecialPrices
-        .map(sp => ({
-          companyId: sp.companyId,
-          ...(sp.priceType === 'price' 
-            ? { 
-                price: parseFloat(sp.price),
-                currency: sp.currency || formData.currency || 'USD',
-              }
-            : { 
-                discountPercentage: parseFloat(sp.discountPercentage),
-                // Don't include currency for discount percentage - it will use product default currency
-              }
-          ),
-          notes: sp.notes || undefined,
-        }));
+        .map(sp => {
+          if (sp.priceType === 'price') {
+            // For fixed price: send price and currency, ensure discountPercentage is not sent
+            return {
+              companyId: sp.companyId,
+              price: parseFloat(sp.price),
+              currency: sp.currency || formData.currency || 'USD',
+              discountPercentage: undefined, // Explicitly exclude discount
+              notes: sp.notes || undefined,
+            };
+          } else {
+            // For discount percentage: send discountPercentage only, ensure price is not sent
+            return {
+              companyId: sp.companyId,
+              price: undefined, // Explicitly exclude price
+              discountPercentage: parseFloat(sp.discountPercentage),
+              // Don't include currency for discount percentage - it will use product default currency
+              notes: sp.notes || undefined,
+            };
+          }
+        });
 
       const payload = {
         sku: formData.sku,
@@ -496,14 +530,23 @@ function DashboardContent() {
         // Get company names from loaded companies list
         const existingSpecialPrices: SpecialPriceEntry[] = fullProduct.privatePrices.map((pp: any) => {
           const companyInfo = companies.find(c => c.id === pp.companyId);
+          // Determine pricing type: discountPercentage takes precedence if both exist
+          const pricingType = (pp.discountPercentage !== null && pp.discountPercentage !== undefined) 
+            ? 'discount' 
+            : 'price';
           return {
             id: pp.id,
             companyId: pp.companyId,
             companyName: companyInfo?.name || 'Unknown',
-            priceType: pp.price !== null ? 'price' : 'discount',
-            price: pp.price !== null ? pp.price.toString() : '',
-            discountPercentage: pp.discountPercentage !== null ? pp.discountPercentage.toString() : '',
-            currency: pp.currency || 'USD',
+            priceType: pricingType,
+            // Only populate the field that matches the pricing type
+            price: pricingType === 'price' && pp.price !== null && pp.price !== undefined 
+              ? pp.price.toString() 
+              : '',
+            discountPercentage: pricingType === 'discount' && pp.discountPercentage !== null && pp.discountPercentage !== undefined 
+              ? pp.discountPercentage.toString() 
+              : '',
+            currency: pricingType === 'price' ? (pp.currency || 'USD') : 'USD',
             notes: pp.notes || '',
           };
         });
@@ -534,19 +577,26 @@ function DashboardContent() {
     try {
       // Validate and prepare special prices for edit (only included ones)
       const validSpecialPrices = editIncludedSpecialPrices
-        .map(sp => ({
-          companyId: sp.companyId,
-          ...(sp.priceType === 'price' 
-            ? { 
-                price: parseFloat(sp.price),
-                currency: sp.currency || formData.currency || 'USD',
-              }
-            : { 
-                discountPercentage: parseFloat(sp.discountPercentage),
-              }
-          ),
-          notes: sp.notes || undefined,
-        }));
+        .map(sp => {
+          if (sp.priceType === 'price') {
+            // For fixed price: send price and currency, ensure discountPercentage is not sent
+            return {
+              companyId: sp.companyId,
+              price: parseFloat(sp.price),
+              currency: sp.currency || formData.currency || 'USD',
+              discountPercentage: undefined, // Explicitly exclude discount
+              notes: sp.notes || undefined,
+            };
+          } else {
+            // For discount percentage: send discountPercentage only, ensure price is not sent
+            return {
+              companyId: sp.companyId,
+              price: undefined, // Explicitly exclude price
+              discountPercentage: parseFloat(sp.discountPercentage),
+              notes: sp.notes || undefined,
+            };
+          }
+        });
 
       const payload: any = {
         sku: formData.sku,
@@ -653,7 +703,14 @@ function DashboardContent() {
             <div className="flex items-center gap-2">
               {user?.role === 'supplier_admin' && (
                 <Link href="/supplier/users">
-                  <Button variant="outline">User Management</Button>
+                  <Button variant="outline" className="relative">
+                    User Management
+                    {pendingUserCount > 0 && (
+                      <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center min-w-[20px]">
+                        {pendingUserCount > 99 ? '99+' : pendingUserCount}
+                      </span>
+                    )}
+                  </Button>
                 </Link>
               )}
               <Button onClick={logout} variant="outline">
@@ -890,14 +947,16 @@ function DashboardContent() {
                             >
                               {product.isActive ? 'Inactive' : 'Activate'}
                             </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => setDeleteConfirm(product.id)}
-                              className="h-8 px-3 text-red-600 hover:bg-red-50 hover:text-red-700"
-                            >
-                              Delete
-                            </Button>
+                            {user?.role === 'supplier_admin' && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setDeleteConfirm(product.id)}
+                                className="h-8 px-3 text-red-600 hover:bg-red-50 hover:text-red-700"
+                              >
+                                Delete
+                              </Button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -1129,13 +1188,23 @@ function DashboardContent() {
                             value={draftSpecialPrice.priceType}
                             onChange={(e) => {
                               const newPriceType = e.target.value as 'price' | 'discount';
+                              if (!draftSpecialPrice) return;
+                              
+                              // Update priceType and clear the opposite field in a single state update
                               if (newPriceType === 'price') {
-                                handleDraftChange('priceType', newPriceType);
-                                handleDraftChange('discountPercentage', '');
+                                setDraftSpecialPrice({
+                                  ...draftSpecialPrice,
+                                  priceType: 'price',
+                                  discountPercentage: '',
+                                });
                               } else {
-                                handleDraftChange('priceType', newPriceType);
-                                handleDraftChange('price', '');
+                                setDraftSpecialPrice({
+                                  ...draftSpecialPrice,
+                                  priceType: 'discount',
+                                  price: '',
+                                });
                               }
+                              setError(null);
                             }}
                             disabled={isSubmitting}
                             className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
@@ -1529,13 +1598,23 @@ function DashboardContent() {
                             value={editDraftSpecialPrice.priceType}
                             onChange={(e) => {
                               const newPriceType = e.target.value as 'price' | 'discount';
+                              if (!editDraftSpecialPrice) return;
+                              
+                              // Update priceType and clear the opposite field in a single state update
                               if (newPriceType === 'price') {
-                                handleEditDraftChange('priceType', newPriceType);
-                                handleEditDraftChange('discountPercentage', '');
+                                setEditDraftSpecialPrice({
+                                  ...editDraftSpecialPrice,
+                                  priceType: 'price',
+                                  discountPercentage: '',
+                                });
                               } else {
-                                handleEditDraftChange('priceType', newPriceType);
-                                handleEditDraftChange('price', '');
+                                setEditDraftSpecialPrice({
+                                  ...editDraftSpecialPrice,
+                                  priceType: 'discount',
+                                  price: '',
+                                });
                               }
+                              setError(null);
                             }}
                             disabled={isSubmitting}
                             className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
