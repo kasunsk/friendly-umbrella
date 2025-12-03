@@ -37,30 +37,49 @@ export class ProductService {
   /**
    * Get all products for a supplier
    */
-  async getSupplierProducts(supplierId: string, includeInactive = false) {
-    return prisma.product.findMany({
-      where: {
-        supplierId,
-        ...(includeInactive ? {} : { isActive: true }),
-      },
-      include: {
-        defaultPrices: {
-          where: { isActive: true },
-          orderBy: { effectiveFrom: 'desc' },
-          take: 1,
-        },
-        _count: {
-          select: {
-            privatePrices: {
-              where: { isActive: true },
+  async getSupplierProducts(supplierId: string, includeInactive = false, page = 1, limit = 20) {
+    const where: any = {
+      supplierId,
+      ...(includeInactive ? {} : { isActive: true }),
+    };
+
+    const skip = (page - 1) * limit;
+
+    const [products, total] = await Promise.all([
+      prisma.product.findMany({
+        where,
+        include: {
+          defaultPrices: {
+            where: { isActive: true },
+            orderBy: { effectiveFrom: 'desc' },
+            take: 1,
+          },
+          _count: {
+            select: {
+              privatePrices: {
+                where: { isActive: true },
+              },
             },
           },
         },
+        orderBy: {
+          createdAt: 'desc',
+        },
+        skip,
+        take: limit,
+      }),
+      prisma.product.count({ where }),
+    ]);
+
+    return {
+      products,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
       },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+    };
   }
 
   /**

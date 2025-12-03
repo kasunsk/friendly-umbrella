@@ -50,6 +50,14 @@ router.get(
   '/users',
   [
     query('status').optional().isIn(['pending', 'active', 'rejected']),
+    query('page')
+      .optional()
+      .isInt({ min: 1 })
+      .withMessage('Page must be a positive integer'),
+    query('limit')
+      .optional()
+      .isInt({ min: 1, max: 100 })
+      .withMessage('Limit must be between 1 and 100'),
   ],
   async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
@@ -60,8 +68,10 @@ router.get(
 
       const tenantId = req.tenantId!;
       const status = req.query.status as 'pending' | 'active' | 'rejected' | undefined;
-      const users = await tenantAdminService.getTenantUsers(tenantId, status);
-      res.json({ users });
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 20;
+      const result = await tenantAdminService.getTenantUsers(tenantId, status, page, limit);
+      res.json(result);
     } catch (error) {
       next(error);
     }

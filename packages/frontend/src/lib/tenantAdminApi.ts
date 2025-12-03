@@ -32,9 +32,17 @@ export async function getPendingUsers(): Promise<{ users: TenantUser[] }> {
 }
 
 // Get all users in tenant
-export async function getTenantUsers(status?: 'pending' | 'active' | 'rejected'): Promise<{ users: TenantUser[] }> {
-  const query = status ? `?status=${status}` : '';
-  return apiGet<{ users: TenantUser[] }>(`${BASE_PATH}/users${query}`);
+export async function getTenantUsers(
+  status?: 'pending' | 'active' | 'rejected',
+  page = 1,
+  limit = 20
+): Promise<{ users: TenantUser[]; pagination: { page: number; limit: number; total: number; totalPages: number } }> {
+  const params = new URLSearchParams();
+  if (status) params.append('status', status);
+  params.append('page', page.toString());
+  params.append('limit', limit.toString());
+  const query = params.toString() ? `?${params.toString()}` : '';
+  return apiGet<{ users: TenantUser[]; pagination: { page: number; limit: number; total: number; totalPages: number } }>(`${BASE_PATH}/users${query}`);
 }
 
 // Approve or reject a user

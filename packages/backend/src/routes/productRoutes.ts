@@ -58,6 +58,14 @@ router.get(
       .optional()
       .isBoolean()
       .withMessage('includeInactive must be a boolean'),
+    query('page')
+      .optional()
+      .isInt({ min: 1 })
+      .withMessage('Page must be a positive integer'),
+    query('limit')
+      .optional()
+      .isInt({ min: 1, max: 100 })
+      .withMessage('Limit must be between 1 and 100'),
   ],
   async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
@@ -67,12 +75,16 @@ router.get(
       }
 
       const includeInactive = req.query.includeInactive === 'true';
-      const products = await productService.getSupplierProducts(
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 20;
+      const result = await productService.getSupplierProducts(
         req.tenantId!,
-        includeInactive
+        includeInactive,
+        page,
+        limit
       );
 
-      res.json({ products });
+      res.json(result);
     } catch (error) {
       next(error);
     }

@@ -50,7 +50,7 @@ export class SuperAdminService {
   /**
    * Get all tenants (with filtering by status and type)
    */
-  async getAllTenants(status?: 'pending' | 'active' | 'rejected', type?: 'company' | 'supplier') {
+  async getAllTenants(status?: 'pending' | 'active' | 'rejected', type?: 'company' | 'supplier', page = 1, limit = 20) {
     const where: any = {};
     if (status) {
       where.status = status;
@@ -59,35 +59,50 @@ export class SuperAdminService {
       where.type = type;
     }
 
-    const tenants = await prisma.tenant.findMany({
-      where,
-      include: {
-        users: {
-          where: {
-            role: {
-              in: ['supplier_admin', 'company_admin'],
+    const skip = (page - 1) * limit;
+
+    const [tenants, total] = await Promise.all([
+      prisma.tenant.findMany({
+        where,
+        include: {
+          users: {
+            where: {
+              role: {
+                in: ['supplier_admin', 'company_admin'],
+              },
+            },
+            select: {
+              id: true,
+              email: true,
+              firstName: true,
+              lastName: true,
+            },
+            take: 1,
+          },
+          _count: {
+            select: {
+              users: true,
             },
           },
-          select: {
-            id: true,
-            email: true,
-            firstName: true,
-            lastName: true,
-          },
-          take: 1,
         },
-        _count: {
-          select: {
-            users: true,
-          },
+        orderBy: {
+          createdAt: 'desc',
         },
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+        skip,
+        take: limit,
+      }),
+      prisma.tenant.count({ where }),
+    ]);
 
-    return tenants;
+    return {
+      tenants,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 
   /**

@@ -52,34 +52,49 @@ export class TenantAdminService {
   /**
    * Get all users in a tenant
    */
-  async getTenantUsers(tenantId: string, status?: 'pending' | 'active' | 'rejected') {
+  async getTenantUsers(tenantId: string, status?: 'pending' | 'active' | 'rejected', page = 1, limit = 20) {
     const where: any = { tenantId };
     if (status) {
       where.status = status;
     }
 
-    const users = await prisma.user.findMany({
-      where,
-      select: {
-        id: true,
-        email: true,
-        firstName: true,
-        lastName: true,
-        role: true,
-        status: true,
-        isActive: true,
-        permissions: true,
-        lastLoginAt: true,
-        createdAt: true,
-        approvedBy: true,
-        approvedAt: true,
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+    const skip = (page - 1) * limit;
 
-    return users;
+    const [users, total] = await Promise.all([
+      prisma.user.findMany({
+        where,
+        select: {
+          id: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+          role: true,
+          status: true,
+          isActive: true,
+          permissions: true,
+          lastLoginAt: true,
+          createdAt: true,
+          approvedBy: true,
+          approvedAt: true,
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+        skip,
+        take: limit,
+      }),
+      prisma.user.count({ where }),
+    ]);
+
+    return {
+      users,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 
   /**

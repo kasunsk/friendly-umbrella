@@ -60,12 +60,19 @@ export async function getPendingTenants(): Promise<{ tenants: Tenant[] }> {
 }
 
 // Get all tenants (with optional status and type filter)
-export async function getAllTenants(status?: 'pending' | 'active' | 'rejected', type?: 'company' | 'supplier'): Promise<{ tenants: Tenant[] }> {
+export async function getAllTenants(
+  status?: 'pending' | 'active' | 'rejected',
+  type?: 'company' | 'supplier',
+  page = 1,
+  limit = 20
+): Promise<{ tenants: Tenant[]; pagination: { page: number; limit: number; total: number; totalPages: number } }> {
   const params = new URLSearchParams();
   if (status) params.append('status', status);
   if (type) params.append('type', type);
+  params.append('page', page.toString());
+  params.append('limit', limit.toString());
   const query = params.toString() ? `?${params.toString()}` : '';
-  return apiGet<{ tenants: Tenant[] }>(`${BASE_PATH}/tenants${query}`);
+  return apiGet<{ tenants: Tenant[]; pagination: { page: number; limit: number; total: number; totalPages: number } }>(`${BASE_PATH}/tenants${query}`);
 }
 
 // Toggle tenant active status

@@ -40,6 +40,14 @@ router.get(
   [
     query('status').optional().isIn(['pending', 'active', 'rejected']),
     query('type').optional().isIn(['company', 'supplier']),
+    query('page')
+      .optional()
+      .isInt({ min: 1 })
+      .withMessage('Page must be a positive integer'),
+    query('limit')
+      .optional()
+      .isInt({ min: 1, max: 100 })
+      .withMessage('Limit must be between 1 and 100'),
   ],
   async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
@@ -50,8 +58,10 @@ router.get(
 
       const status = req.query.status as 'pending' | 'active' | 'rejected' | undefined;
       const type = req.query.type as 'company' | 'supplier' | undefined;
-      const tenants = await superAdminService.getAllTenants(status, type);
-      res.json({ tenants });
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 20;
+      const result = await superAdminService.getAllTenants(status, type, page, limit);
+      res.json(result);
     } catch (error) {
       next(error);
     }
