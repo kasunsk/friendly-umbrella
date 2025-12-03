@@ -12,13 +12,17 @@ export function Companies() {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCompanies, setTotalCompanies] = useState(0);
+  const companiesPerPage = 10;
 
   useEffect(() => {
-    loadCompanies();
-  }, []);
+    loadCompanies(currentPage);
+  }, [currentPage]);
 
   useEffect(() => {
-    // Filter companies by name (case-insensitive)
+    // Filter companies by name (case-insensitive) - client-side filtering on current page
     if (!searchTerm.trim()) {
       setFilteredCompanies(companies);
     } else {
@@ -29,12 +33,15 @@ export function Companies() {
     }
   }, [searchTerm, companies]);
 
-  const loadCompanies = async () => {
+  const loadCompanies = async (page = 1) => {
     try {
       setLoading(true);
-      const data = await getAllTenants(undefined, 'company');
+      const data = await getAllTenants(undefined, 'company', page, companiesPerPage);
       setCompanies(data.tenants);
       setFilteredCompanies(data.tenants);
+      setCurrentPage(data.pagination.page);
+      setTotalPages(data.pagination.totalPages);
+      setTotalCompanies(data.pagination.total);
       setError(null);
     } catch (err: any) {
       setError(err?.error?.message || 'Failed to load companies');
@@ -85,7 +92,7 @@ export function Companies() {
     <div>
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-gray-900">Companies</h2>
-        <Button onClick={loadCompanies} variant="outline">
+        <Button onClick={() => loadCompanies(currentPage)} variant="outline">
           Refresh
         </Button>
       </div>
@@ -118,8 +125,9 @@ export function Companies() {
           </p>
         </div>
       ) : (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
+        <>
+          <div className="bg-white rounded-lg shadow overflow-hidden">
+            <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -204,7 +212,67 @@ export function Companies() {
               ))}
             </tbody>
           </table>
-        </div>
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+          <div className="mt-4 flex items-center justify-between px-6 py-4 border-t border-gray-200">
+            <div className="text-sm text-gray-500">
+              Showing {companies.length > 0 ? ((currentPage - 1) * companiesPerPage + 1) : 0} to {Math.min(currentPage * companiesPerPage, totalCompanies)} of {totalCompanies} companies
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const newPage = currentPage - 1;
+                  setCurrentPage(newPage);
+                }}
+                disabled={currentPage === 1 || loading}
+              >
+                Previous
+              </Button>
+              <div className="flex items-center gap-1">
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let pageNum: number;
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (currentPage <= 3) {
+                    pageNum = i + 1;
+                  } else if (currentPage >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = currentPage - 2 + i;
+                  }
+                  return (
+                    <Button
+                      key={pageNum}
+                      variant={currentPage === pageNum ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setCurrentPage(pageNum)}
+                      disabled={loading}
+                      className="min-w-[40px]"
+                    >
+                      {pageNum}
+                    </Button>
+                  );
+                })}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const newPage = currentPage + 1;
+                  setCurrentPage(newPage);
+                }}
+                disabled={currentPage === totalPages || loading}
+              >
+                Next
+              </Button>
+            </div>
+          </div>
+          )}
+        </>
       )}
     </div>
   );

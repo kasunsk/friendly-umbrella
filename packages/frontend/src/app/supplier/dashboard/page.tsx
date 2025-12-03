@@ -63,6 +63,10 @@ function DashboardContent() {
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalProducts, setTotalProducts] = useState(0);
+  const productsPerPage = 10;
   const [formData, setFormData] = useState({
     sku: '',
     name: '',
@@ -141,9 +145,12 @@ function DashboardContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.role]);
 
-  const fetchProducts = async (filter: FilterType) => {
+  const fetchProducts = async (filter: FilterType, page = 1) => {
     if (!filter) {
       setProducts([]);
+      setCurrentPage(1);
+      setTotalPages(1);
+      setTotalProducts(0);
       return;
     }
 
@@ -158,7 +165,11 @@ function DashboardContent() {
         params.append('includeInactive', 'false');
       }
 
-      const response = await apiGet<{ products: Product[] }>(
+      // Add pagination parameters
+      params.append('page', page.toString());
+      params.append('limit', productsPerPage.toString());
+
+      const response = await apiGet<{ products: Product[]; pagination: { page: number; limit: number; total: number; totalPages: number } }>(
         `${endpoint}${params.toString() ? `?${params.toString()}` : ''}`
       );
 
@@ -176,9 +187,15 @@ function DashboardContent() {
       }
 
       setProducts(filteredProducts);
+      setCurrentPage(response.pagination.page);
+      setTotalPages(response.pagination.totalPages);
+      setTotalProducts(response.pagination.total);
     } catch (err) {
       console.error('Failed to fetch products:', err);
       setProducts([]);
+      setCurrentPage(1);
+      setTotalPages(1);
+      setTotalProducts(0);
     } finally {
       setIsLoadingProducts(false);
     }
@@ -190,10 +207,15 @@ function DashboardContent() {
       setActiveFilter(null);
       setProducts([]);
       setSearchQuery('');
+      setCurrentPage(1);
+      setTotalPages(1);
+      setTotalProducts(0);
     } else {
+      // Reset to first page when changing filter
+      setCurrentPage(1);
+      setSearchQuery(''); // Clear search when changing filter
       setActiveFilter(filter);
-      setSearchQuery('');
-      fetchProducts(filter);
+      fetchProducts(filter, 1);
     }
   };
 
@@ -370,7 +392,7 @@ function DashboardContent() {
       
       // Refresh product list if a filter is active
       if (activeFilter) {
-        await fetchProducts(activeFilter);
+        await fetchProducts(activeFilter, currentPage);
       }
       
       // Close modal after 1 second
@@ -619,7 +641,7 @@ function DashboardContent() {
       // Refresh stats and products
       await fetchStats();
       if (activeFilter) {
-        await fetchProducts(activeFilter);
+        await fetchProducts(activeFilter, currentPage);
       }
 
       setTimeout(() => {
@@ -678,7 +700,7 @@ function DashboardContent() {
       // Refresh stats and products
       await fetchStats();
       if (activeFilter) {
-        await fetchProducts(activeFilter);
+        await fetchProducts(activeFilter, currentPage);
       }
 
       setDeleteConfirm(null);
@@ -860,8 +882,9 @@ function DashboardContent() {
                 {searchQuery ? `No products found matching "${searchQuery}"` : 'No products found'}
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
+              <>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -962,8 +985,73 @@ function DashboardContent() {
                       </tr>
                     ))}
                   </tbody>
-                </table>
-              </div>
+                  </table>
+                </div>
+
+                {/* Pagination */}
+                {totalPages > 1 && (
+                <div className="mt-4 flex items-center justify-between">
+                  <div className="text-sm text-gray-500">
+                    Showing {products.length > 0 ? ((currentPage - 1) * productsPerPage + 1) : 0} to {Math.min(currentPage * productsPerPage, totalProducts)} of {totalProducts} products
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const newPage = currentPage - 1;
+                        setCurrentPage(newPage);
+                        fetchProducts(activeFilter, newPage);
+                      }}
+                      disabled={currentPage === 1 || isLoadingProducts}
+                    >
+                      Previous
+                    </Button>
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                        let pageNum: number;
+                        if (totalPages <= 5) {
+                          pageNum = i + 1;
+                        } else if (currentPage <= 3) {
+                          pageNum = i + 1;
+                        } else if (currentPage >= totalPages - 2) {
+                          pageNum = totalPages - 4 + i;
+                        } else {
+                          pageNum = currentPage - 2 + i;
+                        }
+                        return (
+                          <Button
+                            key={pageNum}
+                            variant={currentPage === pageNum ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => {
+                              setCurrentPage(pageNum);
+                              fetchProducts(activeFilter, pageNum);
+                            }}
+                            disabled={isLoadingProducts}
+                            className="min-w-[40px]"
+                          >
+                            {pageNum}
+                          </Button>
+                        );
+                      })}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const newPage = currentPage + 1;
+                        setCurrentPage(newPage);
+                        fetchProducts(activeFilter, newPage);
+                      }}
+                      disabled={currentPage === totalPages || isLoadingProducts}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+                )}
+              </>
             )}
           </div>
         )}

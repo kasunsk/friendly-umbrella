@@ -19,17 +19,25 @@ export function UserManagement() {
   const [rejectReason, setRejectReason] = useState('');
   const [selectedUserForRole, setSelectedUserForRole] = useState<string | null>(null);
   const [newRoleType, setNewRoleType] = useState<RoleType>('view');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalUsers, setTotalUsers] = useState(0);
+  const usersPerPage = 10;
 
   useEffect(() => {
-    loadUsers();
+    setCurrentPage(1); // Reset to first page when filter changes
+    loadUsers(1);
   }, [statusFilter]);
 
-  const loadUsers = async () => {
+  const loadUsers = async (page = 1) => {
     try {
       setLoading(true);
       const status = statusFilter === 'all' ? undefined : statusFilter;
-      const data = await getTenantUsers(status);
+      const data = await getTenantUsers(status, page, usersPerPage);
       setUsers(data.users);
+      setCurrentPage(data.pagination.page);
+      setTotalPages(data.pagination.totalPages);
+      setTotalUsers(data.pagination.total);
       setError(null);
     } catch (err: any) {
       setError(err.error?.message || 'Failed to load users');
@@ -42,7 +50,7 @@ export function UserManagement() {
     try {
       setProcessingId(userId);
       await approveUser(userId, true);
-      await loadUsers();
+      await loadUsers(currentPage);
       setError(null);
     } catch (err: any) {
       setError(err.error?.message || 'Failed to approve user');
@@ -55,7 +63,7 @@ export function UserManagement() {
     try {
       setProcessingId(userId);
       await approveUser(userId, false, rejectReason);
-      await loadUsers();
+      await loadUsers(currentPage);
       setShowRejectModal(null);
       setRejectReason('');
       setError(null);
@@ -70,7 +78,7 @@ export function UserManagement() {
     try {
       setProcessingId(userId);
       await assignRolePermissions(userId, newRoleType);
-      await loadUsers();
+      await loadUsers(currentPage);
       setSelectedUserForRole(null);
       setNewRoleType('view');
       setError(null);
@@ -169,8 +177,9 @@ export function UserManagement() {
           </p>
         </div>
       ) : (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
+        <>
+          <div className="bg-white rounded-lg shadow overflow-hidden">
+            <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -257,7 +266,72 @@ export function UserManagement() {
               })}
             </tbody>
           </table>
-        </div>
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+          <div className="mt-4 flex items-center justify-between px-6 py-4 border-t border-gray-200">
+            <div className="text-sm text-gray-500">
+              Showing {users.length > 0 ? ((currentPage - 1) * usersPerPage + 1) : 0} to {Math.min(currentPage * usersPerPage, totalUsers)} of {totalUsers} users
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const newPage = currentPage - 1;
+                  setCurrentPage(newPage);
+                  loadUsers(newPage);
+                }}
+                disabled={currentPage === 1 || loading}
+              >
+                Previous
+              </Button>
+              <div className="flex items-center gap-1">
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let pageNum: number;
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (currentPage <= 3) {
+                    pageNum = i + 1;
+                  } else if (currentPage >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = currentPage - 2 + i;
+                  }
+                  return (
+                    <Button
+                      key={pageNum}
+                      variant={currentPage === pageNum ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => {
+                        setCurrentPage(pageNum);
+                        loadUsers(pageNum);
+                      }}
+                      disabled={loading}
+                      className="min-w-[40px]"
+                    >
+                      {pageNum}
+                    </Button>
+                  );
+                })}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const newPage = currentPage + 1;
+                  setCurrentPage(newPage);
+                  loadUsers(newPage);
+                }}
+                disabled={currentPage === totalPages || loading}
+              >
+                Next
+              </Button>
+            </div>
+          </div>
+          )}
+        </>
       )}
 
       {/* Reject Modal */}
