@@ -12,6 +12,9 @@ export interface RegisterInput {
   password: string;
   firstName?: string;
   lastName?: string;
+  phone?: string; // Required for new_company and new_supplier
+  address?: string; // Required for new_company and new_supplier
+  postalCode?: string; // Required for new_company and new_supplier
   role?: string;
   permissions?: Record<string, any>;
 }
@@ -70,6 +73,9 @@ export class AuthService {
           name: input.tenantName!,
           type: input.tenantType!,
           email: input.email,
+          phone: input.phone || null,
+          address: input.address || null,
+          postalCode: input.postalCode || null,
           status: 'pending',
           isActive: false,
         },

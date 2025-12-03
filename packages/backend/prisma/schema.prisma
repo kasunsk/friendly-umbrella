@@ -18,6 +18,7 @@ model Tenant {
   email         String      @unique @db.VarChar(255)
   phone         String?     @db.VarChar(50)
   address       String?     @db.Text
+  postalCode    String?     @map("postal_code") @db.VarChar(20)
   status        TenantStatus @default(pending)
   isActive      Boolean     @default(false) @map("is_active")
   approvedBy    String?     @map("approved_by")

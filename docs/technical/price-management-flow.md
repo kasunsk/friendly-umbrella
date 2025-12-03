@@ -402,3 +402,4 @@ function getPriceForCompany(productId, companyId) {
 
 
 
+

@@ -22,6 +22,9 @@ interface RegisterFormData {
   password: string;
   firstName?: string;
   lastName?: string;
+  phone?: string;
+  address?: string;
+  postalCode?: string;
 }
 
 export default function RegisterPage() {
@@ -103,8 +106,26 @@ export default function RegisterPage() {
           setLoading(false);
           return;
         }
+        if (!data.phone) {
+          setError('Phone number is required');
+          setLoading(false);
+          return;
+        }
+        if (!data.address) {
+          setError('Address is required');
+          setLoading(false);
+          return;
+        }
+        if (!data.postalCode) {
+          setError('Postal code is required');
+          setLoading(false);
+          return;
+        }
         payload.tenantName = data.tenantName;
         payload.tenantType = data.registrationType === 'new_company' ? 'company' : 'supplier';
+        payload.phone = data.phone;
+        payload.address = data.address;
+        payload.postalCode = data.postalCode;
       } else {
         if (!data.tenantId) {
           setError('Please select a company or supplier');
@@ -194,6 +215,12 @@ export default function RegisterPage() {
                   const value = e.target.value as RegistrationType;
                   setValue('registrationType', value);
                   setRegistrationType(value);
+                  // Clear phone, address, and postal code when switching registration types
+                  if (value !== 'new_company' && value !== 'new_supplier') {
+                    setValue('phone', '');
+                    setValue('address', '');
+                    setValue('postalCode', '');
+                  }
                 }}
                 className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
@@ -239,6 +266,60 @@ export default function RegisterPage() {
                     value: registrationType === 'new_supplier' ? 'supplier' : 'company'
                   })}
                 />
+                
+                <div>
+                  <Label htmlFor="phone">Phone Number *</Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    {...register('phone', { required: 'Phone number is required' })}
+                    className="mt-1"
+                    placeholder="e.g., +65 1234 5678"
+                  />
+                  {errors.phone && (
+                    <p className="mt-1 text-sm text-red-600">
+                      {errors.phone.message}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <Label htmlFor="address">Address *</Label>
+                  <textarea
+                    id="address"
+                    {...register('address', { required: 'Address is required' })}
+                    className="mt-1 flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    rows={3}
+                    placeholder="Enter your business address..."
+                  />
+                  {errors.address && (
+                    <p className="mt-1 text-sm text-red-600">
+                      {errors.address.message}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <Label htmlFor="postalCode">Postal Code *</Label>
+                  <Input
+                    id="postalCode"
+                    type="text"
+                    {...register('postalCode', { 
+                      required: 'Postal code is required',
+                      pattern: {
+                        value: /^[A-Z0-9\s-]{3,20}$/i,
+                        message: 'Please enter a valid postal code',
+                      },
+                    })}
+                    className="mt-1"
+                    placeholder="e.g., 12345 or S123456"
+                  />
+                  {errors.postalCode && (
+                    <p className="mt-1 text-sm text-red-600">
+                      {errors.postalCode.message}
+                    </p>
+                  )}
+                </div>
               </>
             )}
 

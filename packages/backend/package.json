@@ -14,7 +14,8 @@
     "db:migrate": "prisma migrate dev",
     "db:migrate:deploy": "prisma migrate deploy",
     "db:studio": "prisma studio",
-    "db:seed": "tsx prisma/seed.ts"
+    "db:seed": "tsx prisma/seed.ts",
+    "db:clear": "tsx clear-database.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.8.1",
@@ -46,6 +47,7 @@
     "typescript": "^5.3.3"
   }
 }
+
 
 
 

@@ -65,7 +65,13 @@ function DashboardContent() {
   const [categories, setCategories] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const productsPerPage = 20;
+  const productsPerPage = 10;
+  
+  // Searchable dropdown states
+  const [supplierDropdownOpen, setSupplierDropdownOpen] = useState(false);
+  const [supplierSearchQuery, setSupplierSearchQuery] = useState('');
+  const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
+  const [categorySearchQuery, setCategorySearchQuery] = useState('');
 
   // Load products with filters
   const loadProducts = useCallback(async (page = 1) => {
@@ -88,8 +94,18 @@ function DashboardContent() {
         `/api/v1/products/search?${params.toString()}`
       );
       
-      setAllProducts(response.products);
-      setFilteredProducts(response.products);
+      // Sort products: those with special prices first
+      const sortedProducts = [...response.products].sort((a, b) => {
+        const aHasSpecialPrice = a.privatePrice !== null && (a.privatePrice.price !== null || a.privatePrice.calculatedPrice !== null);
+        const bHasSpecialPrice = b.privatePrice !== null && (b.privatePrice.price !== null || b.privatePrice.calculatedPrice !== null);
+        
+        if (aHasSpecialPrice && !bHasSpecialPrice) return -1;
+        if (!aHasSpecialPrice && bHasSpecialPrice) return 1;
+        return 0; // Keep original order if both have or both don't have special prices
+      });
+      
+      setAllProducts(sortedProducts);
+      setFilteredProducts(sortedProducts);
       setCurrentPage(response.pagination.page);
       setTotalPages(response.pagination.totalPages);
     } catch (error: any) {
@@ -133,6 +149,24 @@ function DashboardContent() {
   useEffect(() => {
     loadProducts(1);
   }, [loadProducts]);
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.supplier-dropdown-container') && !target.closest('.category-dropdown-container')) {
+        setSupplierDropdownOpen(false);
+        setCategoryDropdownOpen(false);
+      }
+    };
+
+    if (supplierDropdownOpen || categoryDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [supplierDropdownOpen, categoryDropdownOpen]);
 
 
   // Handle filter changes
@@ -232,6 +266,10 @@ function DashboardContent() {
               variant="outline"
               onClick={() => {
                 setFilters({ supplierId: '', category: '', search: '' });
+                setSupplierSearchQuery('');
+                setCategorySearchQuery('');
+                setSupplierDropdownOpen(false);
+                setCategoryDropdownOpen(false);
               }}
             >
               Clear Filters
@@ -239,49 +277,161 @@ function DashboardContent() {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
+            <div className="relative supplier-dropdown-container">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Filter by Supplier
               </label>
-              <select
-                value={filters.supplierId}
-                onChange={(e) => handleFilterChange('supplierId', e.target.value)}
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <option value="">All Suppliers</option>
-                {suppliers.map((supplier) => (
-                  <option key={supplier.id} value={supplier.id}>
-                    {supplier.name}
-                  </option>
-                ))}
-              </select>
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Search or select supplier..."
+                  value={supplierDropdownOpen ? supplierSearchQuery : (filters.supplierId ? suppliers.find(s => s.id === filters.supplierId)?.name || '' : '')}
+                  onChange={(e) => {
+                    setSupplierSearchQuery(e.target.value);
+                    if (!supplierDropdownOpen) setSupplierDropdownOpen(true);
+                  }}
+                  onFocus={() => {
+                    setSupplierDropdownOpen(true);
+                    setSupplierSearchQuery('');
+                  }}
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSupplierDropdownOpen(!supplierDropdownOpen);
+                    if (!supplierDropdownOpen) setSupplierSearchQuery('');
+                  }}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={supplierDropdownOpen ? "M5 15l7-7 7 7" : "M19 9l-7 7-7-7"} />
+                  </svg>
+                </button>
+                {supplierDropdownOpen && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+                    <div
+                      className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                      onClick={() => {
+                        handleFilterChange('supplierId', '');
+                        setSupplierSearchQuery('');
+                        setSupplierDropdownOpen(false);
+                      }}
+                    >
+                      All Suppliers
+                    </div>
+                    {suppliers
+                      .filter(supplier =>
+                        supplier.name.toLowerCase().includes(supplierSearchQuery.toLowerCase())
+                      )
+                      .map((supplier) => (
+                        <div
+                          key={supplier.id}
+                          className={`px-4 py-2 hover:bg-gray-100 cursor-pointer ${
+                            filters.supplierId === supplier.id ? 'bg-blue-50' : ''
+                          }`}
+                          onClick={() => {
+                            handleFilterChange('supplierId', supplier.id);
+                            setSupplierSearchQuery('');
+                            setSupplierDropdownOpen(false);
+                          }}
+                        >
+                          {supplier.name}
+                        </div>
+                      ))}
+                    {suppliers.filter(supplier =>
+                      supplier.name.toLowerCase().includes(supplierSearchQuery.toLowerCase())
+                    ).length === 0 && supplierSearchQuery && (
+                      <div className="px-4 py-2 text-gray-500 text-sm">
+                        No suppliers found
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
             
-            <div>
+            <div className="relative category-dropdown-container">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Filter by Category
               </label>
-              <select
-                value={filters.category}
-                onChange={(e) => handleFilterChange('category', e.target.value)}
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <option value="">All Categories</option>
-                {categories.map((category) => (
-                  <option key={category} value={category}>
-                    {category}
-                  </option>
-                ))}
-              </select>
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Search or select category..."
+                  value={categoryDropdownOpen ? categorySearchQuery : filters.category}
+                  onChange={(e) => {
+                    setCategorySearchQuery(e.target.value);
+                    if (!categoryDropdownOpen) setCategoryDropdownOpen(true);
+                  }}
+                  onFocus={() => {
+                    setCategoryDropdownOpen(true);
+                    setCategorySearchQuery('');
+                  }}
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCategoryDropdownOpen(!categoryDropdownOpen);
+                    if (!categoryDropdownOpen) setCategorySearchQuery('');
+                  }}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={categoryDropdownOpen ? "M5 15l7-7 7 7" : "M19 9l-7 7-7-7"} />
+                  </svg>
+                </button>
+                {categoryDropdownOpen && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+                    <div
+                      className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                      onClick={() => {
+                        handleFilterChange('category', '');
+                        setCategorySearchQuery('');
+                        setCategoryDropdownOpen(false);
+                      }}
+                    >
+                      All Categories
+                    </div>
+                    {categories
+                      .filter(category =>
+                        category.toLowerCase().includes(categorySearchQuery.toLowerCase())
+                      )
+                      .map((category) => (
+                        <div
+                          key={category}
+                          className={`px-4 py-2 hover:bg-gray-100 cursor-pointer ${
+                            filters.category === category ? 'bg-blue-50' : ''
+                          }`}
+                          onClick={() => {
+                            handleFilterChange('category', category);
+                            setCategorySearchQuery('');
+                            setCategoryDropdownOpen(false);
+                          }}
+                        >
+                          {category}
+                        </div>
+                      ))}
+                    {categories.filter(category =>
+                      category.toLowerCase().includes(categorySearchQuery.toLowerCase())
+                    ).length === 0 && categorySearchQuery && (
+                      <div className="px-4 py-2 text-gray-500 text-sm">
+                        No categories found
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Search in Results
+                Search by Product Name
               </label>
               <input
                 type="text"
-                placeholder="Search in filtered results..."
+                placeholder="Search by product name..."
                 value={filters.search}
                 onChange={(e) => handleFilterChange('search', e.target.value)}
                 className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -519,17 +669,6 @@ function DashboardContent() {
           )}
         </div>
 
-        <div className="grid grid-cols-1 gap-6">
-          <div className="bg-white shadow rounded-lg p-6">
-            <h2 className="text-xl font-semibold mb-4">Recent Price Updates</h2>
-            <p className="text-gray-500">No price updates yet.</p>
-          </div>
-
-          <div className="bg-white shadow rounded-lg p-6">
-            <h2 className="text-xl font-semibold mb-4">My Suppliers</h2>
-            <p className="text-gray-500">No suppliers yet.</p>
-          </div>
-        </div>
       </main>
     </div>
   );

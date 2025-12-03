@@ -16,6 +16,9 @@ const registerSchema = z.object({
   password: z.string().min(8),
   firstName: z.string().optional(),
   lastName: z.string().optional(),
+  phone: z.string().optional(),
+  address: z.string().optional(),
+  postalCode: z.string().optional(),
   role: z.string().optional(),
   permissions: z.record(z.any()).optional(),
 });
@@ -86,6 +89,15 @@ router.post(
         }
         if (!input.tenantType) {
           return res.status(400).json({ errors: [{ msg: 'Tenant type is required' }] });
+        }
+        if (!input.phone) {
+          return res.status(400).json({ errors: [{ msg: 'Phone number is required' }] });
+        }
+        if (!input.address) {
+          return res.status(400).json({ errors: [{ msg: 'Address is required' }] });
+        }
+        if (!input.postalCode) {
+          return res.status(400).json({ errors: [{ msg: 'Postal code is required' }] });
         }
       } else {
         if (!input.tenantId) {
