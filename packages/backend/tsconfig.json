@@ -9,8 +9,8 @@
       "@platform/shared/*": ["../../packages/shared/src/*"]
     }
   },
-  "include": ["src/**/*", "prisma/**/*"],
-  "exclude": ["node_modules", "dist", "**/*.test.ts"]
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "**/*.test.ts", "prisma/seed.ts", "clear-database.ts", "**/*.spec.ts"]
 }
 
 

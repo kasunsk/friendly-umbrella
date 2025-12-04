@@ -1,0 +1,37 @@
+[1mdiff --git a/Dockerfile b/Dockerfile[m
+[1mindex 9bd1cd3..b80eabb 100644[m
+[1m--- a/Dockerfile[m
+[1m+++ b/Dockerfile[m
+[36m@@ -8,14 +8,31 @@[m [mCOPY package*.json ./[m
+ COPY packages/backend/package.json ./packages/backend/[m
+ COPY packages/shared/package.json ./packages/shared/[m
+ [m
+[32m+[m[32m# Copy TypeScript config files[m
+[32m+[m[32mCOPY tsconfig.json ./[m
+[32m+[m[32mCOPY packages/backend/tsconfig.json ./packages/backend/[m
+[32m+[m[32mCOPY packages/shared/tsconfig.json ./packages/shared/[m
+[32m+[m
+ # Install dependencies[m
+ RUN npm ci[m
+ [m
+[32m+[m[32m# Copy Prisma schema file only (needed for client generation, exclude seed.ts)[m
+[32m+[m[32mCOPY packages/backend/prisma/schema.prisma ./packages/backend/prisma/schema.prisma[m
+[32m+[m
+[32m+[m[32m# Generate Prisma Client[m
+[32m+[m[32mWORKDIR /app/packages/backend[m
+[32m+[m[32mRUN npm run db:generate[m
+[32m+[m
+ # Copy source code[m
+[32m+[m[32mWORKDIR /app[m
+ COPY packages/backend ./packages/backend[m
+ COPY packages/shared ./packages/shared[m
+ [m
+[31m-# Build[m
+[32m+[m[32m# Build shared package first (dependency)[m
+[32m+[m[32mWORKDIR /app/packages/shared[m
+[32m+[m[32mRUN npm run build[m
+[32m+[m
+[32m+[m[32m# Build backend (exclude seed.ts from compilation)[m
+ WORKDIR /app/packages/backend[m
+ RUN npm run build[m
+ [m
