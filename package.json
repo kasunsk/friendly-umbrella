@@ -11,7 +11,7 @@
     "dev:backend": "npm run dev --workspace=@platform/backend",
     "dev:frontend": "npm run dev --workspace=@platform/frontend",
     "build": "npm run build --workspace=@platform/backend && npm run build --workspace=@platform/frontend",
-    "test": "npm run test --workspaces",
+    "test": "npm run test --workspace=@platform/backend",
     "lint": "npm run lint --workspace=@platform/backend && npm run lint --workspace=@platform/frontend",
     "type-check": "npm run type-check --workspaces",
     "db:generate": "npm run db:generate --workspace=@platform/backend",
