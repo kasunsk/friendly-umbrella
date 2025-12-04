@@ -10,11 +10,22 @@ module.exports = {
     'src/**/*.ts',
     '!src/**/*.d.ts',
     '!src/index.ts',
+    '!src/**/__tests__/**',
+    '!src/**/*.test.ts',
   ],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
   },
   passWithNoTests: true,
+  testTimeout: 30000, // 30 seconds for integration tests
+  setupFilesAfterEnv: ['<rootDir>/src/__tests__/setup/jest.setup.ts'],
+  globals: {
+    'ts-jest': {
+      tsconfig: {
+        esModuleInterop: true,
+      },
+    },
+  },
 };
 
 
