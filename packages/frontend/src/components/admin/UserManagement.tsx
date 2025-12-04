@@ -121,7 +121,7 @@ export function UserManagement() {
     <div>
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-gray-900">User Management</h2>
-        <Button onClick={loadUsers} variant="outline">
+        <Button onClick={() => loadUsers()} variant="outline">
           Refresh
         </Button>
       </div>

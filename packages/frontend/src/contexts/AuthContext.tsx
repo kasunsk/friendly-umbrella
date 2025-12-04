@@ -12,6 +12,7 @@ import {
   isAuthenticated,
   LoginInput,
   RegisterInput,
+  AuthResponse,
 } from '@/lib/auth';
 
 interface AuthContextType {
@@ -51,46 +52,52 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (input: LoginInput) => {
     const response = await apiLogin(input);
-    storeTokens(response.tokens.accessToken, response.tokens.refreshToken);
-    // Refresh to get full user with tenant object
-    await refreshUser();
-    // Get tenantType from refreshed user
-    const updatedUser = await getCurrentUser().catch(() => null);
-    
-    // Check if super admin
-    if (response.user.role === 'super_admin' || updatedUser?.role === 'super_admin') {
-      router.push('/admin/dashboard');
-      return;
+    if (response.tokens) {
+      storeTokens(response.tokens.accessToken, response.tokens.refreshToken);
+      // Refresh to get full user with tenant object
+      await refreshUser();
+      // Get tenantType from refreshed user
+      const updatedUser = await getCurrentUser().catch(() => null);
+      
+      // Check if super admin
+      if (response.user.role === 'super_admin' || updatedUser?.role === 'super_admin') {
+        router.push('/admin/dashboard');
+        return;
+      }
+      
+      const tenantType = (updatedUser as any)?.tenant?.type || (response.user as any)?.tenantType || 'supplier';
+      router.push(getDashboardPath(tenantType));
     }
-    
-    const tenantType = (updatedUser as any)?.tenant?.type || (response.user as any)?.tenantType || 'supplier';
-    router.push(getDashboardPath(tenantType));
   };
 
   const register = async (input: RegisterInput) => {
     const response = await apiRegister(input);
     
     // Check if registration was successful but pending (no tokens)
-    if (!response.tokens) {
+    // Type guard: check if response has tokens property and it's defined
+    if (!('tokens' in response) || !response.tokens) {
       // Registration successful but pending approval - redirect to login with message
       router.push('/auth/login?pending=true');
       return;
     }
     
+    // Type guard: now we know it's AuthResponse with tokens (already checked above)
+    const authResponse = response as AuthResponse & { tokens: { accessToken: string; refreshToken: string } };
+    
     // If tokens are provided (active registration), store them and proceed
-    storeTokens(response.tokens.accessToken, response.tokens.refreshToken);
+    storeTokens(authResponse.tokens.accessToken, authResponse.tokens.refreshToken);
     // Refresh to get full user with tenant object
     await refreshUser();
     // Get tenantType from refreshed user
     const updatedUser = await getCurrentUser().catch(() => null);
     
     // Check if super admin
-    if (response.user.role === 'super_admin' || updatedUser?.role === 'super_admin') {
+    if (authResponse.user.role === 'super_admin' || updatedUser?.role === 'super_admin') {
       router.push('/admin/dashboard');
       return;
     }
     
-    const tenantType = (updatedUser as any)?.tenant?.type || (response.user as any)?.tenantType || 'supplier';
+    const tenantType = (updatedUser as any)?.tenant?.type || (authResponse.user as any)?.tenantType || 'supplier';
     router.push(getDashboardPath(tenantType));
   };
 

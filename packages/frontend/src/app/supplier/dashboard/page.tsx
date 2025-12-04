@@ -647,7 +647,7 @@ function DashboardContent() {
       setTimeout(() => {
         setShowEditProductModal(false);
         setEditingProduct(null);
-        setEditSpecialPrices([]);
+        setEditIncludedSpecialPrices([]);
         setSuccess(false);
         setFormData({
           sku: '',
