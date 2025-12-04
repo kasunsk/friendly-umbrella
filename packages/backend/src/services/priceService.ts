@@ -286,8 +286,6 @@ export class PriceService {
     // Validate: if both price and discountPercentage are provided, or neither is provided, it's an error
     const hasPrice = input.price !== undefined;
     const hasDiscount = input.discountPercentage !== undefined;
-    const currentHasPrice = privatePrice.price !== null;
-    const currentHasDiscount = privatePrice.discountPercentage !== null;
 
     // If updating, at least one must remain or be set
     if (hasPrice && hasDiscount) {
@@ -386,7 +384,7 @@ export class PriceService {
   async deletePrivatePrice(
     privatePriceId: string,
     supplierId: string,
-    userId: string
+    _userId: string
   ) {
     const privatePrice = await prisma.privatePrice.findUnique({
       where: { id: privatePriceId },

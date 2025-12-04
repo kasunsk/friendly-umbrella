@@ -1,4 +1,4 @@
-import { Router, Request, Response, NextFunction } from 'express';
+import { Router, Response, NextFunction } from 'express';
 import { superAdminService } from '../services/superAdminService';
 import { authenticate, AuthRequest, requireSuperAdmin } from '../middleware/auth';
 import { body, param, query, validationResult } from 'express-validator';

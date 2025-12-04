@@ -1,6 +1,6 @@
 import { Router, Response, NextFunction } from 'express';
 import { productService } from '../services/productService';
-import { authenticate, AuthRequest, requireRole, requireTenantType, requireTenantAdmin } from '../middleware/auth';
+import { authenticate, AuthRequest, requireTenantType, requireTenantAdmin } from '../middleware/auth';
 import { body, param, query, validationResult } from 'express-validator';
 import { z } from 'zod';
 

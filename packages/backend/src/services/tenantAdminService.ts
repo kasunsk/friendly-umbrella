@@ -100,7 +100,7 @@ export class TenantAdminService {
   /**
    * Create a new user in the tenant (requires approval)
    */
-  async createUser(input: CreateUserInput, tenantId: string, createdBy: string) {
+  async createUser(input: CreateUserInput, tenantId: string, _createdBy: string) {
     // Verify tenant exists and is active
     const tenant = await prisma.tenant.findUnique({
       where: { id: tenantId },

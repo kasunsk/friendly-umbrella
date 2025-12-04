@@ -1,4 +1,4 @@
-import { Router, Request, Response, NextFunction } from 'express';
+import { Router, Response, NextFunction } from 'express';
 import { tenantAdminService } from '../services/tenantAdminService';
 import { authenticate, AuthRequest, requireTenantAdmin } from '../middleware/auth';
 import { body, param, query, validationResult } from 'express-validator';

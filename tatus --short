@@ -1,0 +1,62 @@
+warning: in the working copy of 'docs/user-guide/user-registration-and-roles.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'packages/backend/clear-database.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'packages/backend/package.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'packages/frontend/src/components/admin/UserManagement.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'packages/frontend/src/lib/tenantAdminApi.ts', LF will be replaced by CRLF the next time Git touches it
+ .github/workflows/ci.yml                                        | 1 [32m+[m
+ .gitignore                                                      | 1 [32m+[m
+ .prettierignore                                                 | 1 [32m+[m
+ .prettierrc                                                     | 1 [32m+[m
+ APPLICATION_STATUS.md                                           | 1 [32m+[m
+ Dockerfile                                                      | 1 [32m+[m
+ LICENSE                                                         | 1 [32m+[m
+ curl-commands.ps1                                               | 1 [32m+[m
+ docker-compose.yml                                              | 1 [32m+[m
+ docs/ACCESS.md                                                  | 1 [32m+[m
+ docs/FEATURE_USER_REGISTRATION_ROLES.md                         | 1 [32m+[m
+ docs/technical/api-reference.md                                 | 1 [32m+[m
+ docs/technical/architecture.md                                  | 1 [32m+[m
+ docs/technical/deployment.md                                    | 1 [32m+[m
+ docs/technical/price-management-flow.md                         | 1 [32m+[m
+ docs/technical/setup.md                                         | 1 [32m+[m
+ docs/technical/user-registration-role-management.md             | 1 [32m+[m
+ docs/user-guide/api-testing.md                                  | 1 [32m+[m
+ package.json                                                    | 1 [32m+[m
+ packages/backend/.eslintrc.json                                 | 1 [32m+[m
+ packages/backend/env.example                                    | 1 [32m+[m
+ packages/backend/jest.config.js                                 | 1 [32m+[m
+ packages/backend/logs/.gitkeep                                  | 1 [32m+[m
+ packages/backend/src/middleware/errorHandler.ts                 | 1 [32m+[m
+ packages/backend/src/middleware/notFoundHandler.ts              | 1 [32m+[m
+ packages/backend/src/utils/logger.ts                            | 1 [32m+[m
+ packages/backend/src/utils/password.ts                          | 1 [32m+[m
+ packages/backend/src/utils/prisma.ts                            | 1 [32m+[m
+ packages/backend/src/utils/socket.ts                            | 1 [32m+[m
+ packages/backend/src/websocket/auth.ts                          | 1 [32m+[m
+ packages/backend/tsconfig.json                                  | 1 [32m+[m
+ packages/frontend/.eslintrc.json                                | 1 [32m+[m
+ packages/frontend/package.json                                  | 1 [32m+[m
+ packages/frontend/postcss.config.js                             | 1 [32m+[m
+ packages/frontend/src/app/api/docs/route.ts                     | 1 [32m+[m
+ packages/frontend/src/app/company/users/page.tsx                | 1 [32m+[m
+ packages/frontend/src/app/providers.tsx                         | 1 [32m+[m
+ packages/frontend/src/app/supplier/users/page.tsx               | 1 [32m+[m
+ packages/frontend/src/components/admin/AllTenants.tsx           | 1 [32m+[m
+ packages/frontend/src/components/admin/PendingTenants.tsx       | 1 [32m+[m
+ packages/frontend/src/components/admin/SuperAdminManagement.tsx | 1 [32m+[m
+ packages/frontend/src/components/ui/button.tsx                  | 1 [32m+[m
+ packages/frontend/src/components/ui/input.tsx                   | 1 [32m+[m
+ packages/frontend/src/components/ui/label.tsx                   | 1 [32m+[m
+ packages/frontend/src/lib/tenantApi.ts                          | 1 [32m+[m
+ packages/frontend/src/lib/utils.ts                              | 1 [32m+[m
+ packages/frontend/tailwind.config.ts                            | 1 [32m+[m
+ packages/frontend/tsconfig.json                                 | 1 [32m+[m
+ packages/shared/package.json                                    | 1 [32m+[m
+ packages/shared/src/index.ts                                    | 1 [32m+[m
+ packages/shared/src/schemas/index.ts                            | 1 [32m+[m
+ packages/shared/src/types/index.ts                              | 1 [32m+[m
+ packages/shared/tsconfig.json                                   | 1 [32m+[m
+ start-app.ps1                                                   | 1 [32m+[m
+ test-data/README.md                                             | 1 [32m+[m
+ tsconfig.json                                                   | 1 [32m+[m
+ 56 files changed, 56 insertions(+)

@@ -879,7 +879,7 @@ function DashboardContent() {
               </div>
             ) : (searchQuery ? products.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase())) : products).length === 0 ? (
               <div className="text-center py-8 text-gray-500">
-                {searchQuery ? `No products found matching "${searchQuery}"` : 'No products found'}
+                {searchQuery ? <>No products found matching &quot;{searchQuery}&quot;</> : 'No products found'}
               </div>
             ) : (
               <>
@@ -1453,7 +1453,7 @@ function DashboardContent() {
 
                   {!draftSpecialPrice && includedSpecialPrices.length === 0 && !loadingCompanies && (
                     <div className="text-sm text-gray-500 py-4 text-center border border-dashed rounded-lg">
-                      No special prices included. Click "Add Company Price" to add one.
+                      No special prices included. Click &quot;Add Company Price&quot; to add one.
                     </div>
                   )}
                 </div>
@@ -1863,7 +1863,7 @@ function DashboardContent() {
 
                   {!editDraftSpecialPrice && editIncludedSpecialPrices.length === 0 && !loadingCompanies && (
                     <div className="text-sm text-gray-500 py-4 text-center border border-dashed rounded-lg">
-                      No special prices included. Click "Add Company Price" to add one.
+                      No special prices included. Click &quot;Add Company Price&quot; to add one.
                     </div>
                   )}
                 </div>

@@ -173,7 +173,7 @@ export class SuperAdminService {
   /**
    * Toggle tenant active status
    */
-  async toggleTenantStatus(tenantId: string, isActive: boolean, superAdminId: string) {
+  async toggleTenantStatus(tenantId: string, isActive: boolean, _superAdminId: string) {
     const tenant = await prisma.tenant.findUnique({
       where: { id: tenantId },
     });
@@ -223,7 +223,7 @@ export class SuperAdminService {
   /**
    * Create a new super admin
    */
-  async createSuperAdmin(input: CreateSuperAdminInput, createdBy: string) {
+  async createSuperAdmin(input: CreateSuperAdminInput, _createdBy: string) {
     // Check if email already exists
     const existingUser = await prisma.user.findUnique({
       where: { email: input.email },

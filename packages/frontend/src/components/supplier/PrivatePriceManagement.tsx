@@ -334,7 +334,7 @@ export function PrivatePriceManagement({
             <div className="text-center py-8 text-gray-500">
               No special prices set for this product yet.
               <br />
-              Click "Add Special Price" to create one.
+              Click &quot;Add Special Price&quot; to create one.
             </div>
           ) : (
             <div className="overflow-x-auto">

@@ -1,7 +1,7 @@
 import { Server } from 'socket.io';
 import { AuthenticatedSocket } from '../auth';
 
-export function handlePriceUpdates(socket: AuthenticatedSocket, io: Server) {
+export function handlePriceUpdates(_socket: AuthenticatedSocket, _io: Server) {
   // This will be used when price update routes emit events
   // For now, it's a placeholder for future implementation
 }
