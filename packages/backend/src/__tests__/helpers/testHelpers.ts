@@ -11,7 +11,7 @@ export function getErrorMessage(res: Response): string {
     return res.body.message;
   }
   if (res.body?.errors && Array.isArray(res.body.errors)) {
-    return res.body.errors.map((e: any) => e.msg || e.message).join(', ');
+    return res.body.errors.map((e: { msg?: string; message?: string }) => e.msg || e.message || '').join(', ');
   }
   return 'Unknown error';
 }
@@ -47,4 +47,5 @@ export function randomUUID(): string {
     return v.toString(16);
   });
 }
+
 

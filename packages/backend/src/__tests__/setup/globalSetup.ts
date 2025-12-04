@@ -29,10 +29,6 @@ export async function globalTeardown() {
  */
 export async function beforeEachSetup() {
   // Clean database before each test file
-  const { getTestPrisma } = await import('./testSetup');
-  const prisma = getTestPrisma();
-  
-  // Clean all tables
   await cleanTestDatabase();
 }
 
@@ -42,4 +38,5 @@ export async function beforeEachSetup() {
 export async function afterEachTeardown() {
   // Optional: Add cleanup logic if needed
 }
+
 

@@ -1,5 +1,4 @@
 import { PrismaClient, UserRole, UserStatus, TenantType, TenantStatus } from '@prisma/client';
-import * as bcrypt from 'bcryptjs';
 import { hashPassword } from '../../utils/password';
 import { generateAccessToken } from '../../utils/jwt';
 
@@ -208,4 +207,5 @@ export async function createTestStaff(
     accessToken,
   };
 }
+
 
