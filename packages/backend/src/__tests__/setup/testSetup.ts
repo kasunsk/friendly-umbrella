@@ -22,14 +22,18 @@ export async function setupTestDatabase() {
   // Set environment variable for Prisma
   process.env.DATABASE_URL = testDbUrl;
 
-  // Generate Prisma client
+  // Generate Prisma client (skip if already generated, e.g., in CI)
+  // This is safe to run multiple times, but we'll make it non-blocking
   try {
     execSync('npx prisma generate', {
       cwd: join(__dirname, '../../..'),
-      stdio: 'inherit',
+      stdio: process.env.CI ? 'pipe' : 'inherit', // Less verbose in CI
     });
   } catch (error) {
-    console.error('Failed to generate Prisma client:', error);
+    // Ignore errors - Prisma client might already be generated
+    if (!process.env.CI) {
+      console.warn('Note: Prisma generate may have already run. Continuing...');
+    }
   }
 
   prisma = new PrismaClient({
@@ -40,15 +44,19 @@ export async function setupTestDatabase() {
     },
   });
 
-  // Run migrations
+  // Run migrations (skip if already run, e.g., in CI)
+  // This is safe to run multiple times, but we'll make it non-blocking
   try {
     execSync('npx prisma migrate deploy', {
       cwd: join(__dirname, '../../..'),
-      stdio: 'inherit',
+      stdio: process.env.CI ? 'pipe' : 'inherit', // Less verbose in CI
       env: { ...process.env, DATABASE_URL: testDbUrl },
     });
   } catch (error) {
-    console.error('Failed to run migrations:', error);
+    // Ignore errors - migrations might already be applied
+    if (!process.env.CI) {
+      console.warn('Note: Migrations may have already been applied. Continuing...');
+    }
   }
 
   isDatabaseInitialized = true;

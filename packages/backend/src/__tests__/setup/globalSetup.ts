@@ -5,12 +5,22 @@ import { setupTestDatabase, cleanTestDatabase, closeTestDatabase } from './testS
  * This runs once before all tests
  */
 export async function globalSetup() {
-  // Set test environment variables
-  process.env.NODE_ENV = 'test';
-  process.env.JWT_SECRET = 'test-jwt-secret-key-for-integration-tests';
-  process.env.JWT_REFRESH_SECRET = 'test-jwt-refresh-secret-key-for-integration-tests';
-  process.env.JWT_EXPIRES_IN = '1h';
-  process.env.JWT_REFRESH_EXPIRES_IN = '7d';
+  // Set test environment variables (only if not already set)
+  if (!process.env.NODE_ENV) {
+    process.env.NODE_ENV = 'test';
+  }
+  if (!process.env.JWT_SECRET) {
+    process.env.JWT_SECRET = 'test-jwt-secret-key-for-integration-tests-minimum-32-characters-long';
+  }
+  if (!process.env.JWT_REFRESH_SECRET) {
+    process.env.JWT_REFRESH_SECRET = 'test-jwt-refresh-secret-key-for-integration-tests-minimum-32-characters-long';
+  }
+  if (!process.env.JWT_EXPIRES_IN) {
+    process.env.JWT_EXPIRES_IN = '1h';
+  }
+  if (!process.env.JWT_REFRESH_EXPIRES_IN) {
+    process.env.JWT_REFRESH_EXPIRES_IN = '7d';
+  }
   
   // Initialize test database
   await setupTestDatabase();
