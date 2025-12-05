@@ -124,3 +124,42 @@ export async function logout(page: Page): Promise<void> {
   await page.reload();
 }
 
+/**
+ * Register a new tenant via API
+ */
+export async function registerViaAPI(
+  page: Page,
+  registrationData: {
+    email: string;
+    password: string;
+    registrationType: 'new_supplier' | 'new_company';
+    tenantName?: string;
+    tenantType?: 'supplier' | 'company';
+    firstName?: string;
+    lastName?: string;
+    phone?: string;
+    address?: string;
+    postalCode?: string;
+  }
+): Promise<{ status: number; body: any }> {
+  const response = await page.request.post('http://localhost:8000/api/v1/auth/register', {
+    data: {
+      email: registrationData.email,
+      password: registrationData.password,
+      registrationType: registrationData.registrationType,
+      tenantName: registrationData.tenantName || `${registrationData.tenantType || 'supplier'} Test`,
+      tenantType: registrationData.tenantType || 'supplier',
+      firstName: registrationData.firstName || 'Test',
+      lastName: registrationData.lastName || 'User',
+      phone: registrationData.phone || '+1234567890',
+      address: registrationData.address || '123 Test St',
+      postalCode: registrationData.postalCode || '12345',
+    },
+  });
+
+  return {
+    status: response.status(),
+    body: await response.json().catch(() => ({})),
+  };
+}
+

@@ -109,7 +109,9 @@ test.describe('User Registration', () => {
     
     // Should show validation error or stay on page (validation prevents submission)
     const currentUrl = page.url();
-    const errorExists = await page.locator('[class*="bg-red-50"], [class*="error"], text=/required/i').count();
+    const errorCSS = page.locator('[class*="bg-red-50"], [class*="error"]');
+    const errorText = page.getByText(/required/i);
+    const errorExists = (await errorCSS.count()) + (await errorText.count());
     
     // Either error message appears or form prevents submission
     expect(errorExists > 0 || currentUrl.includes('/auth/register')).toBeTruthy();

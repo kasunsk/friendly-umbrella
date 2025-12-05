@@ -3,7 +3,7 @@ import { Express } from 'express';
 import { PrismaClient, TenantType, TenantStatus, UserRole, UserStatus } from '@prisma/client';
 import { createTestApp } from '../setup/appSetup';
 import { setupTestDatabase, cleanTestDatabase, getTestPrisma, closeTestDatabase } from '../setup/testSetup';
-import { createTestTenant, createTestTenantAdmin, createTestStaff } from '../helpers/authHelpers';
+import { createTestTenant, createTestTenantAdmin, createTestStaff, createTestTenantWithAdmin } from '../helpers/authHelpers';
 import { getErrorMessage, randomEmail } from '../helpers/testHelpers';
 
 describe('Tenant Admin Routes Integration Tests', () => {
@@ -28,29 +28,29 @@ describe('Tenant Admin Routes Integration Tests', () => {
   beforeEach(async () => {
     await cleanTestDatabase();
 
-    supplierTenant = await createTestTenant(prisma, {
+    // Create supplier tenant with admin in a single transaction
+    const supplierData = await createTestTenantWithAdmin(prisma, {
       type: TenantType.supplier,
       status: TenantStatus.active,
-    });
-
-    supplierAdmin = await createTestTenantAdmin(prisma, supplierTenant.id, {
+    }, {
       email: 'admin@supplier.test.com',
       password: 'password123',
       role: UserRole.supplier_admin,
-      tenantType: TenantType.supplier,
     });
+    supplierTenant = supplierData.tenant;
+    supplierAdmin = supplierData.admin;
 
-    companyTenant = await createTestTenant(prisma, {
+    // Create company tenant with admin in a single transaction
+    const companyData = await createTestTenantWithAdmin(prisma, {
       type: TenantType.company,
       status: TenantStatus.active,
-    });
-
-    companyAdmin = await createTestTenantAdmin(prisma, companyTenant.id, {
+    }, {
       email: 'admin@company.test.com',
       password: 'password123',
       role: UserRole.company_admin,
-      tenantType: TenantType.company,
     });
+    companyTenant = companyData.tenant;
+    companyAdmin = companyData.admin;
 
     // Create a pending user
     pendingUser = await createTestStaff(prisma, supplierTenant.id, {

@@ -7,8 +7,9 @@ test.describe('User Management - Super Admin', () => {
     await waitForElementVisible(superAdminPage, 'body', 5000);
 
     // Look for user management section
-    const userSection = superAdminPage.locator('[class*="user"], [class*="User"], text=/user/i');
-    const sectionCount = await userSection.count();
+    const userSectionCSS = superAdminPage.locator('[class*="user"], [class*="User"]');
+    const userSectionText = superAdminPage.getByText(/user/i);
+    const sectionCount = (await userSectionCSS.count()) + (await userSectionText.count());
 
     // User management should be accessible
     expect(sectionCount >= 0).toBeTruthy();

@@ -9,8 +9,9 @@ test.describe('Tenant Approval Workflow', () => {
     
     // Look for pending tenants section
     // Adjust selectors based on your actual UI
-    const pendingSection = superAdminPage.locator('[class*="pending"], [class*="Pending"], text=/pending/i');
-    const sectionCount = await pendingSection.count();
+    const pendingSectionCSS = superAdminPage.locator('[class*="pending"], [class*="Pending"]');
+    const pendingSectionText = superAdminPage.getByText(/pending/i);
+    const sectionCount = (await pendingSectionCSS.count()) + (await pendingSectionText.count());
     
     // Pending tenants section should be accessible
     expect(sectionCount >= 0).toBeTruthy();
@@ -68,8 +69,9 @@ test.describe('Tenant Approval Workflow', () => {
       await superAdminPage.waitForTimeout(2000);
 
       // Tenant should be approved
-      const successMessage = superAdminPage.locator('[class*="success"], text=/approved/i');
-      const messageCount = await successMessage.count();
+      const successMessageCSS = superAdminPage.locator('[class*="success"]');
+      const successMessageText = superAdminPage.getByText(/approved/i);
+      const messageCount = (await successMessageCSS.count()) + (await successMessageText.count());
 
       // Success message should appear or tenant should be removed from pending list
       expect(messageCount >= 0).toBeTruthy();
