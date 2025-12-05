@@ -163,3 +163,48 @@ export async function registerViaAPI(
   };
 }
 
+/**
+ * Get pending tenants (requires super admin authentication)
+ */
+export async function getPendingTenants(page: Page, accessToken: string): Promise<any[]> {
+  const response = await page.request.get('http://localhost:8000/api/v1/admin/tenants/pending', {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+  if (!response.ok()) {
+    throw new Error(`Failed to get pending tenants: ${response.status()}`);
+  }
+
+  const data = await response.json();
+  return data.tenants || [];
+}
+
+/**
+ * Approve a tenant via API (requires super admin authentication)
+ */
+export async function approveTenantViaAPI(
+  page: Page,
+  tenantId: string,
+  accessToken: string,
+  approved: boolean = true,
+  reason?: string
+): Promise<any> {
+  const response = await page.request.post(`http://localhost:8000/api/v1/admin/tenants/${tenantId}/approve`, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+    data: {
+      approved,
+      reason,
+    },
+  });
+
+  if (!response.ok()) {
+    throw new Error(`Failed to approve tenant: ${response.status()}`);
+  }
+
+  return await response.json();
+}
+

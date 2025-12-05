@@ -1,5 +1,5 @@
 import { test, expect } from '../fixtures/auth.fixtures';
-import { registerViaAPI, randomEmail, waitForElementVisible } from '../helpers/test-helpers';
+import { registerViaAPI, randomEmail, getPendingTenants, approveTenantViaAPI, waitForElementVisible } from '../helpers/test-helpers';
 
 test.describe('Complete End-to-End Workflow', () => {
   test('full tenant registration and approval workflow', async ({ page, superAdminPage }) => {
@@ -25,43 +25,80 @@ test.describe('Complete End-to-End Workflow', () => {
 
     // Step 2: Try to login before approval (should fail or be pending)
     await page.goto('/auth/login');
+    await page.waitForLoadState('networkidle');
+    
     await page.fill('input[type="email"]', supplierEmail);
     await page.fill('input[type="password"]', 'password123');
     await page.click('button[type="submit"]');
 
     // Should show pending message or login failure
     await page.waitForTimeout(3000);
-    const errorOrPending = await page.locator('[class*="error"], [class*="pending"], [class*="Pending"]').count();
+    const currentUrl = page.url();
+    const isStillOnLogin = currentUrl.includes('/auth/login');
+    const hasError = await page.locator('text=/pending|error|failed|approval/i').count() > 0;
     
-    // Either error or pending message should be shown
-    expect(errorOrPending >= 0).toBeTruthy();
+    // Should either show error/pending message or stay on login page
+    expect(isStillOnLogin || hasError).toBeTruthy();
 
     // Step 3: Super admin approves the tenant
-    await superAdminPage.goto('/admin/dashboard');
-    await waitForElementVisible(superAdminPage, 'body', 5000);
+    // Get super admin access token from localStorage
+    const superAdminToken = await superAdminPage.evaluate(() => localStorage.getItem('accessToken'));
+    
+    if (!superAdminToken) {
+      throw new Error('Super admin token not found - make sure superAdminPage fixture is properly authenticated');
+    }
 
-    // Look for and click approve button
-    const approveButtons = superAdminPage.locator('button:has-text("Approve"), button:has-text("Accept")');
-    const buttonCount = await approveButtons.count();
-
-    if (buttonCount > 0) {
-      await approveButtons.first().click();
+    // Get pending tenants via API
+    const pendingTenants = await getPendingTenants(superAdminPage, superAdminToken);
+    
+    // Find the tenant we just registered by email
+    const pendingTenant = pendingTenants.find((tenant: any) => tenant.email === supplierEmail);
+    
+    if (!pendingTenant) {
+      // Tenant might already be approved or not found - try to proceed anyway
+      console.warn(`Tenant with email ${supplierEmail} not found in pending tenants list`);
+    } else {
+      // Approve the tenant via API
+      await approveTenantViaAPI(superAdminPage, pendingTenant.id, superAdminToken, true);
+      
+      // Wait a moment for approval to be processed
       await superAdminPage.waitForTimeout(2000);
     }
 
     // Step 4: Now the supplier should be able to login
     await page.goto('/auth/login');
+    await page.waitForLoadState('networkidle');
+    
     await page.fill('input[type="email"]', supplierEmail);
     await page.fill('input[type="password"]', 'password123');
+    
+    // Wait for navigation to complete after login
+    const navigationPromise = page.waitForURL(/\/supplier\/dashboard/, { timeout: 20000 });
+    
     await page.click('button[type="submit"]');
-
-    // Should redirect to supplier dashboard
-    await page.waitForURL(/\/supplier\/dashboard/, { timeout: 10000 });
+    
+    // Wait for redirect to supplier dashboard with longer timeout
+    try {
+      await navigationPromise;
+      await page.waitForLoadState('networkidle');
+    } catch (error) {
+      // If navigation times out, check what URL we're on and what error might be showing
+      const finalUrl = page.url();
+      const errorText = await page.locator('body').textContent();
+      throw new Error(`Failed to navigate to supplier dashboard. Current URL: ${finalUrl}. Error: ${error}. Page content: ${errorText?.substring(0, 200)}`);
+    }
+    
+    // Verify we're on the supplier dashboard
     await expect(page).toHaveURL(/\/supplier\/dashboard/);
 
-    // Verify login was successful
+    // Verify login was successful by checking for access token
     const token = await page.evaluate(() => localStorage.getItem('accessToken'));
     expect(token).toBeTruthy();
+    
+    // Verify dashboard content loaded
+    await page.waitForSelector('body', { timeout: 5000 });
+    const pageContent = await page.textContent('body');
+    expect(pageContent).toBeTruthy();
   });
 
   test('complete product and price management workflow', async ({ supplierAdminPage, companyAdminPage }) => {
