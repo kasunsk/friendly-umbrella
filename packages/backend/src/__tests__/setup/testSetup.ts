@@ -44,21 +44,49 @@ export async function setupTestDatabase() {
     },
   });
 
-  // Run migrations (skip if already run, e.g., in CI)
-  // This is safe to run multiple times, but we'll make it non-blocking
-  try {
-    execSync('npx prisma migrate deploy', {
-      cwd: join(__dirname, '../../..'),
-      stdio: process.env.CI ? 'pipe' : 'inherit', // Less verbose in CI
-      env: { ...process.env, DATABASE_URL: testDbUrl },
-    });
-  } catch (error) {
-    // Ignore errors - migrations might already be applied
-    if (!process.env.CI) {
-      console.warn('Note: Migrations may have already been applied. Continuing...');
+  // Connect to database first
+  await prisma.$connect();
+
+  // Ensure database schema is up to date
+  if (process.env.CI) {
+    // In CI, migrations should already be run - verify tables exist
+    try {
+      await prisma.$queryRaw`SELECT 1 FROM "tenants" LIMIT 1`;
+    } catch (error: any) {
+      // Tables don't exist - try to run migrations as fallback
+      console.warn('Tables not found in CI, attempting to run migrations...');
+      try {
+        execSync('npx prisma migrate deploy', {
+          cwd: join(__dirname, '../../..'), // packages/backend directory
+          stdio: 'inherit',
+          env: { ...process.env, DATABASE_URL: testDbUrl },
+        });
+        // Verify again after migrations
+        await prisma.$queryRaw`SELECT 1 FROM "tenants" LIMIT 1`;
+      } catch (migrateError: any) {
+        throw new Error(
+          `Database setup failed in CI: Tables do not exist and migrations failed. ` +
+          `Error: ${migrateError?.message || error?.message}`
+        );
+      }
+    }
+  } else {
+    // For local tests, use db push which is more reliable
+    try {
+      execSync('npx prisma db push --skip-generate --accept-data-loss', {
+        cwd: join(__dirname, '../../..'),
+        stdio: 'inherit',
+        env: { ...process.env, DATABASE_URL: testDbUrl },
+      });
+    } catch (error: any) {
+      throw new Error(
+        `Database setup failed: Could not push schema. ` +
+        `Make sure your test database is accessible. ` +
+        `Error: ${error?.message}`
+      );
     }
   }
-
+  
   isDatabaseInitialized = true;
 }
 

@@ -51,10 +51,10 @@ jobs:
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/construction_pricing_test?schema=public
 
-      - name: Run database migrations
+      - name: Setup test database schema
         run: |
           cd packages/backend
-          npx prisma migrate deploy
+          npx prisma db push --skip-generate --accept-data-loss
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/construction_pricing_test?schema=public
 
@@ -169,10 +169,10 @@ jobs:
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/construction_pricing_test?schema=public
 
-      - name: Run database migrations
+      - name: Setup test database schema
         run: |
           cd packages/backend
-          npx prisma migrate deploy
+          npx prisma db push --skip-generate --accept-data-loss
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/construction_pricing_test?schema=public
 
