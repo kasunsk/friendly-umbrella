@@ -37,6 +37,7 @@ describe('Price Routes Integration Tests', () => {
       email: 'admin@supplier.test.com',
       password: 'password123',
       role: UserRole.supplier_admin,
+      tenantType: TenantType.supplier,
     });
 
     companyTenant = await createTestTenant(prisma, {
@@ -48,6 +49,7 @@ describe('Price Routes Integration Tests', () => {
       email: 'admin@company.test.com',
       password: 'password123',
       role: UserRole.company_admin,
+      tenantType: TenantType.company,
     });
 
     // Create a test product

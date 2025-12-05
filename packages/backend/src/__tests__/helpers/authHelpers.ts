@@ -111,22 +111,39 @@ export async function createTestTenantAdmin(
 ): Promise<TestUser> {
   const passwordHash = await hashPassword(options.password || 'password123');
   
-  const tenant = await prisma.tenant.findUnique({
-    where: { id: tenantId },
-  });
-
-  if (!tenant) {
-    throw new Error(`Tenant ${tenantId} not found`);
+  // Get tenant type - use provided tenantType if available, otherwise lookup
+  let tenantType: TenantType;
+  if (options.tenantType) {
+    tenantType = options.tenantType;
+  } else {
+    // Lookup tenant to get type - retry once if not found (connection pool delay)
+    let tenant = await prisma.tenant.findUnique({
+      where: { id: tenantId },
+    });
+    
+    if (!tenant) {
+      // Wait a bit for transaction to commit
+      await new Promise(resolve => setTimeout(resolve, 50));
+      tenant = await prisma.tenant.findUnique({
+        where: { id: tenantId },
+      });
+    }
+    
+    if (!tenant) {
+      throw new Error(`Tenant ${tenantId} not found. Make sure the tenant was created and committed before creating admin.`);
+    }
+    
+    tenantType = tenant.type;
   }
 
-  const role = options.role || (tenant.type === TenantType.supplier 
+  const role = options.role || (tenantType === TenantType.supplier 
     ? UserRole.supplier_admin 
     : UserRole.company_admin);
 
   const user = await prisma.user.create({
     data: {
       tenantId,
-      email: options.email || `admin@${tenant.type}.test.com`,
+      email: options.email || randomEmail(),
       passwordHash,
       firstName: 'Tenant',
       lastName: 'Admin',
@@ -140,7 +157,7 @@ export async function createTestTenantAdmin(
     userId: user.id,
     tenantId: user.tenantId || '',
     role: user.role,
-    tenantType: tenant.type === TenantType.supplier ? 'supplier' : 'company',
+    tenantType: tenantType === TenantType.supplier ? 'supplier' : 'company',
   });
 
   return {
@@ -164,26 +181,35 @@ export async function createTestStaff(
     password?: string;
     role?: UserRole;
     status?: UserStatus;
+    tenantType?: TenantType;
   }
 ): Promise<TestUser> {
   const passwordHash = await hashPassword(options.password || 'password123');
   
-  const tenant = await prisma.tenant.findUnique({
-    where: { id: tenantId },
-  });
+  // Try to get tenant type - use provided tenantType if available, otherwise lookup
+  let tenantType: TenantType;
+  if (options.tenantType) {
+    tenantType = options.tenantType;
+  } else {
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: tenantId },
+    });
 
-  if (!tenant) {
-    throw new Error(`Tenant ${tenantId} not found`);
+    if (!tenant) {
+      throw new Error(`Tenant ${tenantId} not found`);
+    }
+    
+    tenantType = tenant.type;
   }
 
-  const role = options.role || (tenant.type === TenantType.supplier 
+  const role = options.role || (tenantType === TenantType.supplier 
     ? UserRole.supplier_staff 
     : UserRole.company_staff);
 
   const user = await prisma.user.create({
     data: {
       tenantId,
-      email: options.email || `staff@${tenant.type}.test.com`,
+      email: options.email || randomEmail(),
       passwordHash,
       firstName: 'Staff',
       lastName: 'User',
@@ -197,7 +223,7 @@ export async function createTestStaff(
     userId: user.id,
     tenantId: user.tenantId || '',
     role: user.role,
-    tenantType: tenant.type === TenantType.supplier ? 'supplier' : 'company',
+    tenantType: tenantType === TenantType.supplier ? 'supplier' : 'company',
   });
 
   return {

@@ -37,6 +37,7 @@ describe('Tenant Admin Routes Integration Tests', () => {
       email: 'admin@supplier.test.com',
       password: 'password123',
       role: UserRole.supplier_admin,
+      tenantType: TenantType.supplier,
     });
 
     companyTenant = await createTestTenant(prisma, {
@@ -48,6 +49,7 @@ describe('Tenant Admin Routes Integration Tests', () => {
       email: 'admin@company.test.com',
       password: 'password123',
       role: UserRole.company_admin,
+      tenantType: TenantType.company,
     });
 
     // Create a pending user
@@ -56,6 +58,7 @@ describe('Tenant Admin Routes Integration Tests', () => {
       password: 'password123',
       role: UserRole.supplier_staff,
       status: UserStatus.pending,
+      tenantType: TenantType.supplier,
     });
   });
 
@@ -92,6 +95,7 @@ describe('Tenant Admin Routes Integration Tests', () => {
         email: 'active@supplier.test.com',
         password: 'password123',
         status: UserStatus.active,
+        tenantType: TenantType.supplier,
       });
     });
 
@@ -223,11 +227,13 @@ describe('Tenant Admin Routes Integration Tests', () => {
         email: 'user1@supplier.test.com',
         password: 'password123',
         status: UserStatus.active,
+        tenantType: TenantType.supplier,
       });
       await createTestStaff(prisma, supplierTenant.id, {
         email: 'user2@supplier.test.com',
         password: 'password123',
         status: UserStatus.pending,
+        tenantType: TenantType.supplier,
       });
     });
 

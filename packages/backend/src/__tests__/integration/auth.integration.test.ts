@@ -171,6 +171,7 @@ describe('Auth Routes Integration Tests', () => {
       const tenantAdmin = await createTestTenantAdmin(prisma, supplierTenant.id, {
         email: 'admin@supplier.test.com',
         password: 'password123',
+        tenantType: TenantType.supplier,
       });
 
       const response = await request(app)
@@ -214,6 +215,7 @@ describe('Auth Routes Integration Tests', () => {
         email: 'inactive@supplier.test.com',
         password: 'password123',
         status: UserStatus.pending,
+        tenantType: TenantType.supplier,
       });
 
       const response = await request(app)

@@ -144,30 +144,15 @@ export async function cleanTestDatabase() {
     return;
   }
 
-  try {
-    // Delete in correct order to respect foreign key constraints
-    // Use transactions where possible for better reliability
-    await prisma.$transaction(async (tx) => {
-      await tx.priceView.deleteMany({});
-      await tx.priceAuditLog.deleteMany({});
-      await tx.privatePrice.deleteMany({});
-      await tx.defaultPrice.deleteMany({});
-      await tx.product.deleteMany({});
-      await tx.user.deleteMany({});
-      await tx.tenant.deleteMany({});
-    }, {
-      timeout: 5000, // 5 second timeout
-    });
-  } catch (error: any) {
-    // If transaction fails, try individual deletes (for missing tables)
-    await safeDeleteMany(prisma, prisma.priceView, 'price_views');
-    await safeDeleteMany(prisma, prisma.priceAuditLog, 'price_audit_log');
-    await safeDeleteMany(prisma, prisma.privatePrice, 'private_prices');
-    await safeDeleteMany(prisma, prisma.defaultPrice, 'default_prices');
-    await safeDeleteMany(prisma, prisma.product, 'products');
-    await safeDeleteMany(prisma, prisma.user, 'users');
-    await safeDeleteMany(prisma, prisma.tenant, 'tenants');
-  }
+  // Delete in correct order to respect foreign key constraints
+  // Use safe deletion to handle missing tables gracefully
+  await safeDeleteMany(prisma, prisma.priceView, 'price_views');
+  await safeDeleteMany(prisma, prisma.priceAuditLog, 'price_audit_log');
+  await safeDeleteMany(prisma, prisma.privatePrice, 'private_prices');
+  await safeDeleteMany(prisma, prisma.defaultPrice, 'default_prices');
+  await safeDeleteMany(prisma, prisma.product, 'products');
+  await safeDeleteMany(prisma, prisma.user, 'users');
+  await safeDeleteMany(prisma, prisma.tenant, 'tenants');
 }
 
 /**
