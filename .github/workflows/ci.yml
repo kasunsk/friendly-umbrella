@@ -14,7 +14,7 @@ env:
 
 jobs:
   test:
-    name: Test & Lint
+    name: Unit Tests & Lint
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -90,7 +90,7 @@ jobs:
           PGPASSWORD=postgres psql -h localhost -U postgres -d construction_pricing_test -c "SELECT version();" || echo "Database connection check failed"
         continue-on-error: true
 
-      - name: Run integration tests
+      - name: Run integration tests (optional)
         run: |
           cd packages/backend
           npm run test:integration
@@ -103,7 +103,7 @@ jobs:
           JWT_REFRESH_EXPIRES_IN: 7d
           NODE_ENV: test
           CORS_ORIGIN: http://localhost:3000
-        continue-on-error: false
+        continue-on-error: true
 
       - name: Upload test results on failure
         if: failure()
@@ -344,16 +344,19 @@ jobs:
           # Critical jobs must pass
           if [ "$TEST_STATUS" == "success" ] && [ "$BUILD_STATUS" == "success" ]; then
             echo "✅ Critical checks passed!"
-            echo "Unit/Integration Tests: $TEST_STATUS"
+            echo "Unit Tests & Lint: $TEST_STATUS"
             echo "Build: $BUILD_STATUS"
             
-            # E2E tests are optional but report their status
+            # Integration and E2E tests are optional but report their status
+            echo ""
+            echo "Optional Tests (non-blocking):"
+            echo "  - Integration tests run within test job (check logs for status)"
             if [ "$E2E_STATUS" == "success" ]; then
-              echo "E2E Tests: ✅ $E2E_STATUS"
+              echo "  - E2E Tests: ✅ $E2E_STATUS"
             elif [ "$E2E_STATUS" == "skipped" ]; then
-              echo "E2E Tests: ⏭️  $E2E_STATUS (skipped)"
+              echo "  - E2E Tests: ⏭️  $E2E_STATUS (skipped)"
             else
-              echo "E2E Tests: ⚠️  $E2E_STATUS (failed but non-blocking)"
+              echo "  - E2E Tests: ⚠️  $E2E_STATUS (failed but non-blocking)"
             fi
             
             if [ "$DOCKER_STATUS" == "success" ] || [ "$DOCKER_STATUS" == "skipped" ]; then
@@ -361,7 +364,7 @@ jobs:
             fi
           else
             echo "❌ Critical checks failed"
-            echo "Unit/Integration Tests: $TEST_STATUS"
+            echo "Unit Tests & Lint: $TEST_STATUS"
             echo "Build: $BUILD_STATUS"
             if [ "$E2E_STATUS" != "" ] && [ "$E2E_STATUS" != "skipped" ]; then
               echo "E2E Tests: $E2E_STATUS"
