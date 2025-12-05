@@ -8,7 +8,11 @@ module.exports = {
     '!**/__tests__/integration/**',
   ],
   transform: {
-    '^.+\\.ts$': 'ts-jest',
+    '^.+\\.ts$': ['ts-jest', {
+      tsconfig: {
+        esModuleInterop: true,
+      },
+    }],
   },
   collectCoverageFrom: [
     'src/**/*.ts',
@@ -24,12 +28,5 @@ module.exports = {
   passWithNoTests: true,
   testTimeout: 10000, // 10 seconds for unit tests (faster than integration)
   // No global setup/teardown for unit tests (they don't need database)
-  globals: {
-    'ts-jest': {
-      tsconfig: {
-        esModuleInterop: true,
-      },
-    },
-  },
 };
 

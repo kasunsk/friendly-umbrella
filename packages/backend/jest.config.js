@@ -4,7 +4,11 @@ module.exports = {
   roots: ['<rootDir>/src'],
   testMatch: ['**/__tests__/**/*.ts', '**/?(*.)+(spec|test).ts'],
   transform: {
-    '^.+\\.ts$': 'ts-jest',
+    '^.+\\.ts$': ['ts-jest', {
+      tsconfig: {
+        esModuleInterop: true,
+      },
+    }],
   },
   collectCoverageFrom: [
     'src/**/*.ts',
@@ -21,13 +25,6 @@ module.exports = {
   globalSetup: '<rootDir>/src/__tests__/setup/jest.globalSetup.ts',
   globalTeardown: '<rootDir>/src/__tests__/setup/jest.globalTeardown.ts',
   setupFilesAfterEnv: ['<rootDir>/src/__tests__/setup/jest.setup.ts'],
-  globals: {
-    'ts-jest': {
-      tsconfig: {
-        esModuleInterop: true,
-      },
-    },
-  },
 };
 
 

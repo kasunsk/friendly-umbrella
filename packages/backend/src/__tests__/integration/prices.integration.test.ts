@@ -53,7 +53,7 @@ describe('Price Routes Integration Tests', () => {
     // Create a test product
     const product = await prisma.product.create({
       data: {
-        tenantId: supplierTenant.id,
+        supplierId: supplierTenant.id,
         sku: `SKU-${randomString(8)}`,
         name: 'Test Product',
         unit: 'kg',

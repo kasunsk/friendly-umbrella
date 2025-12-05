@@ -117,21 +117,21 @@ describe('Product Routes Integration Tests', () => {
       await prisma.product.createMany({
         data: [
           {
-            tenantId: supplierTenant.id,
+            supplierId: supplierTenant.id,
             sku: 'PROD-1',
             name: 'Product 1',
             unit: 'kg',
             isActive: true,
           },
           {
-            tenantId: supplierTenant.id,
+            supplierId: supplierTenant.id,
             sku: 'PROD-2',
             name: 'Product 2',
             unit: 'piece',
             isActive: true,
           },
           {
-            tenantId: supplierTenant.id,
+            supplierId: supplierTenant.id,
             sku: 'PROD-3',
             name: 'Inactive Product',
             unit: 'kg',
@@ -181,7 +181,7 @@ describe('Product Routes Integration Tests', () => {
     beforeEach(async () => {
       const product = await prisma.product.create({
         data: {
-          tenantId: supplierTenant.id,
+          supplierId: supplierTenant.id,
           sku: 'TEST-SKU',
           name: 'Test Product',
           description: 'Test Description',
@@ -218,7 +218,7 @@ describe('Product Routes Integration Tests', () => {
     beforeEach(async () => {
       const product = await prisma.product.create({
         data: {
-          tenantId: supplierTenant.id,
+          supplierId: supplierTenant.id,
           sku: 'TEST-SKU',
           name: 'Original Product',
           unit: 'kg',
@@ -250,7 +250,7 @@ describe('Product Routes Integration Tests', () => {
 
       const otherProduct = await prisma.product.create({
         data: {
-          tenantId: otherTenant.id,
+          supplierId: otherTenant.id,
           sku: 'OTHER-SKU',
           name: 'Other Product',
           unit: 'kg',
@@ -275,7 +275,7 @@ describe('Product Routes Integration Tests', () => {
     beforeEach(async () => {
       const product = await prisma.product.create({
         data: {
-          tenantId: supplierTenant.id,
+          supplierId: supplierTenant.id,
           sku: 'DELETE-SKU',
           name: 'Product to Delete',
           unit: 'kg',
@@ -305,14 +305,14 @@ describe('Product Routes Integration Tests', () => {
       await prisma.product.createMany({
         data: [
           {
-            tenantId: supplierTenant.id,
+            supplierId: supplierTenant.id,
             sku: 'PROD-1',
             name: 'Product 1',
             unit: 'kg',
             isActive: true,
           },
           {
-            tenantId: supplierTenant.id,
+            supplierId: supplierTenant.id,
             sku: 'PROD-2',
             name: 'Product 2',
             unit: 'piece',

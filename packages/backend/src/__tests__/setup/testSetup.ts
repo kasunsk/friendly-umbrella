@@ -63,6 +63,52 @@ export async function setupTestDatabase() {
 }
 
 /**
+ * Helper to safely delete from a table, ignoring missing table errors
+ */
+async function safeDeleteMany(prisma: PrismaClient, model: any, tableName: string): Promise<void> {
+  try {
+    await model.deleteMany({});
+  } catch (error: any) {
+    // Check if it's a Prisma error (case-insensitive matching)
+    const errorMessage = String(error?.message || '').toLowerCase();
+    const errorCode = String(error?.code || '');
+    const errorName = String(error?.name || '');
+    
+    // Ignore table missing errors - check various patterns
+    const isTableMissingError = 
+      errorMessage.includes('does not exist') ||
+      errorMessage.includes('does not exist in the current database') ||
+      errorMessage.includes('relation') ||
+      (errorMessage.includes('table') && errorMessage.includes('not exist')) ||
+      errorCode === 'P2021' ||  // Table does not exist
+      errorCode === '42P01';     // PostgreSQL undefined table
+    
+    if (isTableMissingError) {
+      // Table doesn't exist, skip silently
+      return;
+    }
+    
+    // For connection errors, also skip (database might not be available)
+    const isConnectionError =
+      errorMessage.includes("can't reach database") ||
+      errorMessage.includes('cannot reach database') ||
+      errorMessage.includes('econnrefused') ||
+      errorMessage.includes('connection') ||
+      errorCode === 'P1001' ||    // Can't reach database server
+      errorCode === 'P1000' ||    // Authentication failed
+      errorName === 'PrismaClientInitializationError';
+    
+    if (isConnectionError) {
+      // Database not available, skip cleanup
+      return;
+    }
+    
+    // Re-throw other unexpected errors
+    throw error;
+  }
+}
+
+/**
  * Clean test database - truncate all tables
  */
 export async function cleanTestDatabase() {
@@ -71,13 +117,14 @@ export async function cleanTestDatabase() {
   }
 
   // Delete in correct order to respect foreign key constraints
-  await prisma.priceView.deleteMany({});
-  await prisma.priceAuditLog.deleteMany({});
-  await prisma.privatePrice.deleteMany({});
-  await prisma.defaultPrice.deleteMany({});
-  await prisma.product.deleteMany({});
-  await prisma.user.deleteMany({});
-  await prisma.tenant.deleteMany({});
+  // Use safe deletion for all tables to handle missing tables gracefully
+  await safeDeleteMany(prisma, prisma.priceView, 'price_views');
+  await safeDeleteMany(prisma, prisma.priceAuditLog, 'price_audit_log');
+  await safeDeleteMany(prisma, prisma.privatePrice, 'private_prices');
+  await safeDeleteMany(prisma, prisma.defaultPrice, 'default_prices');
+  await safeDeleteMany(prisma, prisma.product, 'products');
+  await safeDeleteMany(prisma, prisma.user, 'users');
+  await safeDeleteMany(prisma, prisma.tenant, 'tenants');
 }
 
 /**
