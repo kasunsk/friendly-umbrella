@@ -66,6 +66,10 @@ jobs:
         run: npm run lint
         continue-on-error: false
 
+      - name: Run unit tests
+        run: npm run test:unit --workspace=@platform/backend
+        continue-on-error: false
+
       - name: Wait for database to be ready
         run: |
           echo "Waiting for PostgreSQL to be ready..."
