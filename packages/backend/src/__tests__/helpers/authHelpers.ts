@@ -1,6 +1,7 @@
 import { PrismaClient, UserRole, UserStatus, TenantType, TenantStatus } from '@prisma/client';
 import { hashPassword } from '../../utils/password';
 import { generateAccessToken } from '../../utils/jwt';
+import { randomEmail } from './testHelpers';
 
 export interface TestUser {
   id: string;
@@ -71,11 +72,12 @@ export async function createTestTenant(
     status?: TenantStatus;
   }
 ): Promise<TestTenant> {
+  // Use random email if not provided to avoid unique constraint conflicts
   const tenant = await prisma.tenant.create({
     data: {
       name: options.name || `${options.type} Test Company`,
       type: options.type,
-      email: options.email || `${options.type}@test.com`,
+      email: options.email || randomEmail(),
       phone: '+1234567890',
       address: '123 Test St',
       postalCode: '12345',
