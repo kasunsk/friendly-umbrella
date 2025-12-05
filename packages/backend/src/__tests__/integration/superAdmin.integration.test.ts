@@ -65,6 +65,7 @@ describe('Super Admin Routes Integration Tests', () => {
       const tenantAdmin = await createTestTenantAdmin(prisma, activeTenant.id, {
         email: 'admin@test.com',
         password: 'password123',
+        tenantType: TenantType.company,
       });
 
       const response = await request(app)
